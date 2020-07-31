@@ -31,6 +31,20 @@ public class MyFirstOpMode extends LinearOpMode {
             telemetry.addData("Status" ,"Runnning");
             telemetry.update();
 
+            if (gamepad1.right_stick_y){
+                dragon1.setPower(1);
+                dragon3.setPower(1);
+
+            } elif (-gamepad1.right_stick_y) {
+                dragon1.setPower(-1);
+                dragon3.setPower(-1);
+            } else {
+                dragon1.setPower(0);
+                dragon3.setPower(0);
+            }
+
+
+
 
 
         }
