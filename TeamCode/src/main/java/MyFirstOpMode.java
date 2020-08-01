@@ -43,6 +43,19 @@ public class MyFirstOpMode extends LinearOpMode {
                 dragon3.setPower(0);
             }
 
+            if (gamepad1.left_stick_y) {
+                dragon2.setPower(1);
+                dragon4.setPower(1);
+
+            } elif (-gamepad1.left_stick_y) {
+                dragon2.setPoer(-1);
+                dragon4,setPower(-1);
+
+            } else {
+                dragon2.setPower(0);
+                dragon4.setPower(0);
+            }
+
 
 
 
