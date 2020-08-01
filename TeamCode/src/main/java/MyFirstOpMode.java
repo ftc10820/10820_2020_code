@@ -56,6 +56,16 @@ public class MyFirstOpMode extends LinearOpMode {
                 dragon4.setPower(0);
             }
 
+            if (gamepad1.y) {
+                arm1.setPosition(1);
+
+            } elif (gamepad1.a) {
+                arm1.setPosition(0);
+
+            } else {
+                arm1.setPosition(0.5);
+            }
+ 
 
 
 
