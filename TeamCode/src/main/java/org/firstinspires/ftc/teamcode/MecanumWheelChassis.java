@@ -17,7 +17,7 @@ public class MecanumWheelChassis extends LinearOpMode {
     @Override 
     public void runOpMode() {
 
-            initializeRobot()
+            initializeRobot();
 
         waitForStart();
 
@@ -28,7 +28,7 @@ public class MecanumWheelChassis extends LinearOpMode {
             
 
             if (gamepad1.right_stick_x) {
-                
+
                 drive1.setPower(-0.5);
                 drive2.setPower(0.5);
                 drive3.setPower(-0.5);
@@ -67,23 +67,24 @@ public class MecanumWheelChassis extends LinearOpMode {
 
         }
 
+    }
+    private void initializeRobot() {
+        //hardware maps of drive motors
+        drive1 = hardwareMap.dcMotor.get("drive1");
+        drive2 = hardwareMap.dcMotor.get("drive2");
+        drive3 = hardwareMap.dcMotor.get("drive3");
+        drive4 = hardwareMap.dcMotor.get("drive4");
+    
+        //direction of motors
+        drive1.setDirection(DcMotor.Direction.FORWARD);
+        drive2.setDirection(DcMotor.Direction.REVERSE);
+        drive3.setDirection(DcMotor.Direction.FORWARD);
+        drive4.setDirection(DcMotor.Direction.REVERSE);
+    
     } 
 
 }
 
 
-private void initializeRobot() {
-    //hardware maps of drive motors
-    drive1 = hardwareMap.dcMotor.get("drive1");
-    drive2 = hardwareMap.dcMotor.get("drive2");
-    drive3 = hardwareMap.dcMotor.get("drive3");
-    drive4 = hardwareMap.dcMotor.get("drive4");
 
-    //direction of motors
-    drive1.setDirection(DcMotor.Direction.FORWARD);
-    drive2.setDirection(DcMotor.Direction.REVERSE);
-    drive3.setDirection(DcMotor.Direction.FORWARD);
-    drive4.setDirection(DcMotor.Direction.REVERSE);
-
-}
 
