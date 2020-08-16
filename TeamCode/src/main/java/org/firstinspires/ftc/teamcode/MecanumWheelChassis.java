@@ -1,19 +1,17 @@
 package org.firstinspires.ftc.teamcode;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 @TeleOp
 public class MecanumWheelChassis extends LinearOpMode {
-
     //drive motors
     private DcMotor drive1;
     private DcMotor drive2;
     private DcMotor drive3;
     private DcMotor drive4;
-
+    
     @Override 
     public void runOpMode() {
 
@@ -27,33 +25,19 @@ public class MecanumWheelChassis extends LinearOpMode {
             //mecanum wheel drive
             
 
-            if (gamepad1.right_stick_x) {
+            if (gamepad1.right_bumper) {
+                // go right
+                drive1.setPower(1);
+                drive2.setPower(-1);
+                drive3.setPower(-1);
+                drive4.setPower(1);
 
-                drive1.setPower(-0.5);
-                drive2.setPower(0.5);
-                drive3.setPower(-0.5);
-                drive4.setPower(0.5);
-
-            } else if (-gamepad1.right_stick_x) {
-
-                drive1.setPower(0.5);
-                drive2.setPower(-0.5);
-                drive3.setPower(0.5);
-                drive4.setPower(-0.5);
-
-            } else if (gamepad1.left_stick_x) {
-
-                drive1.setPower(-0.5);
-                drive2.setPower(0.5);
-                drive3.setPower(-0.5);
-                drive4.setPower(0.5);
-
-            } else if (-gamepad1.right_stick_x) {
-
-                drive1.setPower(0.5);
-                drive2.setPower(-0.5);
-                drive3.setPower(0.5);
-                drive4.setPower(-0.5);
+            } else if (gamepad1.left_bumper) {
+                // go left
+                drive1.setPower(-1);
+                drive2.setPower(1);
+                drive3.setPower(1);
+                drive4.setPower(-1);
 
             } else {
         
@@ -67,24 +51,24 @@ public class MecanumWheelChassis extends LinearOpMode {
 
         }
 
-    }
-    private void initializeRobot() {
-        //hardware maps of drive motors
-        drive1 = hardwareMap.dcMotor.get("drive1");
-        drive2 = hardwareMap.dcMotor.get("drive2");
-        drive3 = hardwareMap.dcMotor.get("drive3");
-        drive4 = hardwareMap.dcMotor.get("drive4");
-    
-        //direction of motors
-        drive1.setDirection(DcMotor.Direction.FORWARD);
-        drive2.setDirection(DcMotor.Direction.REVERSE);
-        drive3.setDirection(DcMotor.Direction.FORWARD);
-        drive4.setDirection(DcMotor.Direction.REVERSE);
-    
     } 
+    
+    private void initializeRobot() {
+    //hardware maps of drive motors
+    drive1 = hardwareMap.dcMotor.get("drive1");
+    drive2 = hardwareMap.dcMotor.get("drive2");
+    drive3 = hardwareMap.dcMotor.get("drive3");
+    drive4 = hardwareMap.dcMotor.get("drive4");
+
+    //direction of motors
+    drive1.setDirection(DcMotor.Direction.REVERSE);
+    drive2.setDirection(DcMotor.Direction.REVERSE);
+    drive3.setDirection(DcMotor.Direction.FORWARD);
+    drive4.setDirection(DcMotor.Direction.FORWARD);
 
 }
 
+}
 
 
 
