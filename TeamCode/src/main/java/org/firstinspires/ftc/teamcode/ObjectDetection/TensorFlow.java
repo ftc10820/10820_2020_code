@@ -68,7 +68,7 @@ public class TensorFlow extends LinearOpMode {
      * and paste it in to your code on the next line, between the double quotes.
      */
     private static final String VUFORIA_KEY =
-            "Afw3lxn/ / / / /AAABmZVgzwf8S0BNibC5XaSWMQUo7i1UTRJvIircezMT8IVQrwgiob45RFG6mVnFnUBhf4WpHnvZiAjpCMbVMft+iVOKd3ml6JY3Upno8XnnZ2boxC1ciuikANPtSiuPETXwFD0OoOWYJU3rZP2Kzc5SCknwC6UI2X2LfiHcvvKJbiembX0eUmgva/0dKlQpyqRDLuKMvEFy38NYe3I3CE68KOMhd8BY18NXF1jxtJxmaksI1z24FrCY3pLEGJgSqxtwLWUx9eTAnw0G2iwTI75hon8Z7Z3M9RIAFEYAUPw7CoNU/xKa0DI6Bds+JTWNkUeqniPKXR5AYqTwSlQx4YbJ2wShMKqOHU68OH5jRIvuyocJ";
+            "AVAC94j/////AAABmWWX13ZnaUd3n0y217/7xhho24gqa5yVpTdWI9DQOMBMjicq7uPsmK41JbcoFOJY5QXJiYkeeqzFjGFJjrHaIF3cYstf7tmbgztfuBwNN+t7OWvYJzgBm5Qn4+a7wV0jsEOy0/hCOkLo74dPDaeS+Rm/jyoTtkVvc5sqEUuGONJJyOPSrCCrbm4EEuFF816rTlNZaOrFPFesZc4xJbwnxRFOmFj8IGH3qBIHnmYaqex52sGLwnCswkEP3MKHsY92Kbl+7VVSJjYD6V934knwX60WY8V3Zy/Yc7xKR1O/CbuT5kCu2HGC9YbAhZ1VQooWuHU4DznQiXZ/hYoBj3P6HNx6jqzVLmuSDEEszY0laEOq";
 
     // Since ImageTarget trackables use mm to specifiy their dimensions, we must use mm for all the physical dimension.
     // We will define some constants and conversions here
