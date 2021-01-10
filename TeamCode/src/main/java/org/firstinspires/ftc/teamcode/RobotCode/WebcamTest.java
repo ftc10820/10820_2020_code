@@ -135,8 +135,11 @@ public class WebcamTest extends LinearOpMode {
 
         if (opModeIsActive()) {
             
+            
+            // shoot the 3 rings in the robot
             startShooter(1);
-
+            startPlane(1);
+            sleep(1000);
             
             while (opModeIsActive()) {
                 if (tfod != null) {
@@ -146,7 +149,17 @@ public class WebcamTest extends LinearOpMode {
                     List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
                     
                     if (updatedRecognitions != null) {
+                        
                       telemetry.addData("# Object Detected", updatedRecognitions.size());
+                      
+                        // if list is empty, then nothing detected (starter stack = 0)
+                        if updatedRecognitions.length() = 0 {
+                            
+                            telemetry.addData("TFOD", "No Items Detected");
+                            telemetry.addData("Target Zone", "A");
+                     
+                        }
+                        
                       // step through the list of recognitions and display boundary info.
                       int i = 0;
                       for (Recognition recognition : updatedRecognitions) {
@@ -163,7 +176,24 @@ public class WebcamTest extends LinearOpMode {
             }
             
         }
-
+           
+        
+        if recognition.getLabel() = "Single" {
+            
+            telemetry.addData("Target Zone","B");
+     
+        } else if recognition.getLabel() = "Quad" {
+            
+            telemetry.addData("Target Zone","C");
+        
+        } else {
+            
+            telemetry.addData("Target Zone","UNKNOWN");
+ 
+        }
+        
+        
+        
         if (tfod != null) {
             tfod.shutdown();
         }
