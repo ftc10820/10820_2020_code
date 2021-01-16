@@ -15,10 +15,16 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TfodCurrentGame;
 
 @Autonomous
-public class DragonAutonomous extends LinearOpMode {
-
+public class DragonAutonomous extends OpMode {
+  
+  // OpMode Members
+  private ElapsedTime runtime = new ElapsedTime();
+  
+  // Detection Variables
   private VuforiaCurrentGame vuforiaUltimateGoal;
   private TfodCurrentGame tfodUltimateGoal;
+  
+  // motors
   private DcMotor drive1;
   private DcMotor drive2;
   private DcMotor drive3;
@@ -27,23 +33,22 @@ public class DragonAutonomous extends LinearOpMode {
   private DcMotor shooter2;
   private DcMotor intake;
   private DcMotor wafflemotor;
-
-  
   private CRServo intakemotor;
+  
+  //servo
   private Servo waffle1;
   private Servo waffle2;
 
+  // sensors
   private ColorSensor launchLine;
 
 
 
   Recognition recognition;
-
-  /**
-   * This function is executed when this Op Mode is selected from the Driver Station.
-   */
+   
+  // code to run ONCE when the driver hits INIT
   @Override
-  public void runOpMode() {
+  public void init() {
     
     initializeRobot();
     
@@ -70,25 +75,34 @@ public class DragonAutonomous extends LinearOpMode {
         0, // zAngle
         true); // useCompetitionFieldTargetLocations
     
-    // Set min confidence threshold to 0.7
-    tfodUltimateGoal.initialize(vuforiaUltimateGoal, 0.7F, true, true);
+      // Set min confidence threshold to 0.7
+      tfodUltimateGoal.initialize(vuforiaUltimateGoal, 0.7F, true, true);
     
-    // Initialize TFOD before waitForStart.
-    // Init TFOD here so the object detection labels are visible
-    // in the Camera Stream preview window on the Driver Station.
-    tfodUltimateGoal.activate();
+      // Initialize TFOD before waitForStart.
+      // Init TFOD here so the object detection labels are visible
+      // in the Camera Stream preview window on the Driver Station.
+      tfodUltimateGoal.activate();
+
+      // Enable following block to zoom in on target.
+      tfodUltimateGoal.setZoom(2.5, 16 / 9);
+      telemetry.addData(">", "Press Play to start");
+      telemetry.update();
     
-    // Enable following block to zoom in on target.
-    tfodUltimateGoal.setZoom(2.5, 16 / 9);
-    telemetry.addData(">", "Press Play to start");
-    telemetry.update();
+    }
+
+
+    //Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
+    @Override init_loop() {
     
-    // Wait for start command from Driver Station.
+    }
     
-    waitForStart();
     
-    if (opModeIsActive()) {
-    
+    // Code to run ONCE when the driver hits PLAY
+    @Override 
+    public void start() {
+      
+      runtime.reset();
+      
       while (launchLine.alpha() < 275) {
           
         drive1.setPower(0.5);
@@ -98,16 +112,7 @@ public class DragonAutonomous extends LinearOpMode {
       
       }
       
-      drive1.setPower(-0.5);
-      drive2.setPower(-0.5);
-      drive3.setPower(-0.5);
-      drive4.setPower(-0.5);
-      sleep(100);
-      
-      drive1.setPower(0);
-      drive2.setPower(0);
-      drive3.setPower(0);
-      drive4.setPower(0);
+      moveBackward(500);
       
       shooter(0.75);
       sleep(2000);
@@ -118,12 +123,15 @@ public class DragonAutonomous extends LinearOpMode {
       noodles(1);
       sleep(10000);
     
-      shooter(0);
-      inclinedPlane(0);
-      noodles(0);
+      stopEverything();
+      
+    }
     
+   
+    // Code to run REPEATEDLY once the driver hits PLAY but before they hit STOP
+    @Override
+    public void loop() {
     
-      while (opModeIsActive()) {
         // Put loop blocks here.
         // Get a list of recognitions from TFOD.
         recognitions = tfodUltimateGoal.getRecognitions();
@@ -131,59 +139,65 @@ public class DragonAutonomous extends LinearOpMode {
         // If list is empty, inform the user. Otherwise, go
         // through list and display info for each recognition.
         if (recognitions.size() == 0) {
+        
           telemetry.addData("TFOD", "No items detected.");
           telemetry.addData("Target Zone", "A");
+          
         } else {
+        
           index = 0;
           
           // Iterate through list and call a function to
           // display info for each recognized object.
           for (Recognition recognition_item : recognitions) {
-            recognition = recognition_item;
-            // Display info.
-            displayInfo(index);
-            // Increment index.
-            index = index + 1;
+              
+             recognition = recognition_item;
+              
+             // Display info.
+             displayInfo(index);
+              
+             // Increment index.
+             index = index + 1;
+            
           }
+          
         }
         
-        telemetry.addData("red:", launchLine.red());
-        telemetry.addData("blue:", launchLine.blue());
-        telemetry.addData("green:", launchLine.green());
-          telemetry.addData("alpha:", launchLine.alpha());
-        
-        telemetry.update();
-      }
-      
-      
+          sensorReadings(1000);
+          telemetry.update();
    
-      
-      
     }
+    
+    
+    @Override
+    public void stop() {
+    
     // Deactivate TFOD.
     tfodUltimateGoal.deactivate();
 
     vuforiaUltimateGoal.close();
     tfodUltimateGoal.close();
-  }
   
+    } 
   
-  /**
-   * Display info (using telemetry) for a recognized object.
-   */
-  private void displayInfo(double i) {
+    // Display info (using telemetry) for a recognized object.
+    private void displayInfo(double i) {
+  
     // Display label info.
     // Display the label and index number for the recognition.
     telemetry.addData("label " + i, recognition.getLabel());
+    
     // Display upper corner info.
     // Display the location of the top left corner
     // of the detection boundary for the recognition
     telemetry.addData("Left, Top " + i, recognition.getLeft() + ", " + recognition.getTop());
+    
     // Display lower corner info.
     // Display the location of the bottom right corner
     // of the detection boundary for the recognition
     telemetry.addData("Right, Bottom " + i, recognition.getRight() + ", " + recognition.getBottom());
     
+    // Target Zone Algorithm
     if (recognition.getLabel().equals("Single")) {
       
       telemetry.addData("Target Zone", "B");
@@ -194,7 +208,7 @@ public class DragonAutonomous extends LinearOpMode {
       
     } else {
       
-      telemetry.addData("Target Zone", "UNKNOWN");
+      telemetry.addData("Target Zone", "A");
       
     }
   }
@@ -203,22 +217,22 @@ public class DragonAutonomous extends LinearOpMode {
     private void initializeRobot() {
     
         //hardware maps of motors
-        drive1 = hardwareMap.dcMotor.get("drive1");
-        drive2 = hardwareMap.dcMotor.get("drive2");
-        drive3 = hardwareMap.dcMotor.get("drive3");
-        drive4 = hardwareMap.dcMotor.get("drive4");
-        intake = hardwareMap.dcMotor.get("intake");
-        shooter1 = hardwareMap.dcMotor.get("shooter1");
-        shooter2 = hardwareMap.dcMotor.get("shooter2");
-        wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
+        drive1 = hardwareMap.get(DcMotor.class, "drive1");
+        drive2 = hardwareMap.get(DcMotor.class, "drive2");
+        drive3 = hardwareMap.get(DcMotor.class, "drive3");
+        drive4 = hardwareMap.get(DcMotor.class, "drive4");
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        shooter1 = hardwareMap.get(DcMotor.class, "shooter1");
+        shooter2 = hardwareMap.get(DcMotor.class, "shooter2");
+        wafflemotor = hardwareMap.get(DcMotor.class, "wafflemotor");
         intakemotor = hardwareMap.get(CRServo.class, "intakemotor");
         launchLine = hardwareMap.get(ColorSensor.class, "color");
 
     
         //hardware maps of servos
 
-        waffle1 = hardwareMap.servo.get("waffle1");
-        waffle2 = hardwareMap.servo.get("waffle2");
+        waffle1 = hardwareMap.get(Servo.class, "waffle1");
+        waffle2 = hardwareMap.get(Servo.class, "waffle2");
     
         //directions
         drive1.setDirection(DcMotor.Direction.REVERSE);
@@ -226,7 +240,7 @@ public class DragonAutonomous extends LinearOpMode {
         drive3.setDirection(DcMotor.Direction.FORWARD);
         drive4.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.FORWARD);
-        shooter1.setDirection(DcMotor.Direction.FORWARD);
+        shooter1.setDirection(DcMotor.Direction.REVERSE);
         shooter2.setDirection(DcMotor.Direction.REVERSE);
         wafflemotor.setDirection(DcMotor.Direction.FORWARD);
         intakemotor.setDirection(CRServo.Direction.FORWARD);
@@ -244,6 +258,7 @@ public class DragonAutonomous extends LinearOpMode {
 
     }
     
+    
     private void moveForward(double power, long time) {
       
       drive1.setPower(power);
@@ -252,7 +267,13 @@ public class DragonAutonomous extends LinearOpMode {
       drive4.setPower(power);
       sleep(time);
       
+      drive1.setPower(0);
+      drive2.setPower(0);
+      drive3.setPower(0);
+      drive4.setPower(0);
+      
     }
+    
     
     private void moveBackward(double power, long time) {
       
@@ -262,14 +283,53 @@ public class DragonAutonomous extends LinearOpMode {
       drive4.setPower(power * -1.0);
       sleep(time);
       
+      drive1.setPower(0);
+      drive2.setPower(0);
+      drive3.setPower(0);
+      drive4.setPower(0);
+      
     }
+    
+    
+    private void strafeRight(long time) {
+    
+      drive1.setPower(0.5);
+      drive2.setPower(-0.5);
+      drive3.setPower(-0.5);
+      drive4.setPower(0.5);
+      sleep(time);
+      
+      drive1.setPower(0);
+      drive2.setPower(0);
+      drive3.setPower(0);
+      drive4.setPower(0);
+      
+    }
+    
+    
+    private void strafeLeft(long time) {
+    
+      drive1.setPower(-0.5);
+      drive2.setPower(0.5);
+      drive3.setPower(0.5);
+      drive4.setPower(-0.5);
+      sleep(time);
+      
+      drive1.setPower(0);
+      drive2.setPower(0);
+      drive3.setPower(0);
+      drive4.setPower(0);
+      
+    }
+    
     
     private void shooter(double power) {
         
-        shooter1.setPower(power * -1.0);
+        shooter1.setPower(power);
         shooter2.setPower(power);
         
     }
+    
     
     private void inclinedPlane(double power) {
         
@@ -278,20 +338,95 @@ public class DragonAutonomous extends LinearOpMode {
         
     }
     
+    
     private void noodles(double power) {
         
         intakemotor.setPower(power);
         
-        
     }
+    
+    
+    private void waffleUp(long time) {
+    
+      wafflemotor.setPower(-0.5);
+      sleep(time);
+    
+    }
+    
+    
+    private void waffleDown(long time) {
+    
+      wafflemotor.setPower(0.5);
+      sleep(time);
+    
+    }
+    
+    
+    private void waffleOpen(long time) {
+      
+      waffle1.setPosition(-1);
+      waffle2.setPosition(1);
+      sleep(time);
+    
+    }
+    
+    
+    private void waffleClose(long time) {
+    
+      waffle1.setPosition(1);
+      waffle2.setPosition(-1);
+      sleep(time);
+      
+    }
+    
+    
+    private void stopRobot() {
+      
+      drive1.setPower(0);
+      drive2.setPower(0);
+      drive3.setPower(0);
+      drive4.setPower(0);
+    
+    }
+    
+    
+    private void stopEverything() {
+    
+      drive1.setPower(0);
+      drive2.setPower(0);
+      drive3.setPower(0);
+      drive4.setPower(0);
+      
+      shooter1.setPower(0);
+      shooter2.setPower(0);
+      
+      intake.setPower(0);
+      
+      intakemotor.setPower(0);
+      
+    }
+    
+    
+    private void sensorReadings(long time) {
+    
+      // color sensor readings
+      telemetry.addData("red:", launchLine.red());
+      telemetry.addData("blue:", launchLine.blue());
+      telemetry.addData("green:", launchLine.green());
+      telemetry.addData("alpha:", launchLine.alpha());
+      telemetry.update();
+      sleep(time);
+      
+    }
+    
     
     private void targetZoneA() {
         
         moveForward(1, 1000);
         
-        
-        
+  
     }
+    
     
     private void targetZoneB() {
         
@@ -301,6 +436,7 @@ public class DragonAutonomous extends LinearOpMode {
         
     }
     
+    
     private void targetZoneC() {
         
         moveForward(1, 1000);
@@ -308,6 +444,7 @@ public class DragonAutonomous extends LinearOpMode {
         
         
     }
+    
     
     private void starterStackDetection() {
         
