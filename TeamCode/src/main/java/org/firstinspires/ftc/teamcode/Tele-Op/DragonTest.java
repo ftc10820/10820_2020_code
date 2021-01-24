@@ -1,21 +1,9 @@
-/*
-Copyright 2020 FIRST Tech Challenge Team FTC
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all copies or substantial
-portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -55,6 +43,13 @@ public class DragonTest extends LinearOpMode {
     //servos
     private Servo waffle1;
     private Servo waffle2;
+    private Servo gate;
+    
+    //sensors
+    private ColorSensor launchLine;
+    private DistanceSensor distanceRight;
+    private DistanceSensor distanceBack;
+    private DistanceSensor distanceLeft;
     
     @Override
     public void runOpMode() {
@@ -106,19 +101,11 @@ public class DragonTest extends LinearOpMode {
              } */
               
         //setting wafflemotor (trying to format floats) WILL try to convert floats to booleans later if have time
-           if (gamepad1.dpad_down){
-               
-            wafflemotor.setPower(0.7);
+          
+            wafflemotor.setPower(gamepad2.right_stick_y);
             
-           } else if (gamepad1.dpad_up){
-               
-            wafflemotor.setPower(-0.7);
-            
-           } else if (gamepad1.dpad_left){
-               
-                wafflemotor.setPower(0);
-           }
-            
+
+           
             if (gamepad2.dpad_up){
                 
             intakemotor.setPower(1);
@@ -128,7 +115,20 @@ public class DragonTest extends LinearOpMode {
                 intakemotor.setPower(0);
                 
            } 
-            
+        
+            if (gamepad1.dpad_up) {
+                
+                gate.setPosition(0.25);
+                
+            } else if (gamepad1.dpad_down) {
+                
+                gate.setPosition(0.75);
+                
+            } else {
+                
+                gate.setPosition(0.5);
+                
+            }
             
             if (gamepad2.x) {
                 
@@ -136,8 +136,8 @@ public class DragonTest extends LinearOpMode {
 
             } else if (gamepad2.y) {
                 
-                shooter1.setPower(-0.75);
-                shooter2.setPower(0.75);
+                shooter1.setPower(-1);
+                shooter2.setPower(1);
 
             } else if (gamepad2.b){
                 shooter1.setPower(0);
@@ -161,16 +161,12 @@ public class DragonTest extends LinearOpMode {
                 
                 waffle1.setPosition(-1);
                 waffle2.setPosition(1);
-                telemetry.addData("wafflestatus", "open");
-                telemetry.update();
-                
+
             } else {
                 
                 waffle1.setPosition(0.5);
                 waffle2.setPosition(0.5);
-                telemetry.addData("wafflestatus", "grabbed");
-                telemetry.update();
-                
+
             }
             
             
@@ -178,17 +174,17 @@ public class DragonTest extends LinearOpMode {
                 
             // go right
             drive1.setPower(1);
-            drive2.setPower(-1);
-            drive3.setPower(-1);
+            drive2.setPower(-0.9);
+            drive3.setPower(-0.9);
             drive4.setPower(1);
                 
             } else if (gamepad1.left_bumper) {
                 
             // go left
-            drive1.setPower(-1);
+            drive1.setPower(-0.9);
             drive2.setPower(1);
             drive3.setPower(1);
-            drive4.setPower(-1);
+            drive4.setPower(-0.9);
                 
             } else {
                     
@@ -199,7 +195,11 @@ public class DragonTest extends LinearOpMode {
                 
             }
             
-            
+            telemetry.addData("alpha:", launchLine.alpha());
+            telemetry.addData("Distance to the Right:", distanceRight.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Distance to the Back:", distanceBack.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Distance to the Left:", distanceLeft.getDistance(DistanceUnit.INCH));
+        
             telemetry.addData("Status", "Running");
             telemetry.update();
 
@@ -225,7 +225,14 @@ public class DragonTest extends LinearOpMode {
 
         waffle1 = hardwareMap.servo.get("waffle1");
         waffle2 = hardwareMap.servo.get("waffle2");
-    
+        gate = hardwareMap.get(Servo.class, "gate");
+        
+        // sensors
+        launchLine = hardwareMap.get(ColorSensor.class, "color");
+        distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
+        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack" );
+        distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft" );
+        
         //directions
         drive1.setDirection(DcMotor.Direction.REVERSE);
         drive2.setDirection(DcMotor.Direction.REVERSE);
@@ -243,3 +250,4 @@ public class DragonTest extends LinearOpMode {
 
     }
 }
+
