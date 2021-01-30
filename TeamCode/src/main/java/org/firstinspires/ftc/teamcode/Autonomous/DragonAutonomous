@@ -18,13 +18,13 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TfodCurrentGame;
 
 @Autonomous
-public class DragonAutonomous extends LinearOpMode {
+public class VLTestAutonomous extends LinearOpMode {
 
   private VuforiaCurrentGame vuforiaUltimateGoal;
   private TfodCurrentGame tfodUltimateGoal;
-  private DcMotor drive1;
-  private DcMotor drive2;
-  private DcMotor drive3;
+  private DcMotor drive1; // VL: Add good documentation on what these drives refer to
+  private DcMotor drive2; // VL: For example, use FRdrive for the front right wheel 
+  private DcMotor drive3; // VL: Ensure orientation is clear i.e., which is left and right
   private DcMotor drive4;
   private DcMotor shooter1;
   private DcMotor shooter2;
@@ -42,6 +42,10 @@ public class DragonAutonomous extends LinearOpMode {
   private DistanceSensor distanceLeft;
 
   Recognition recognition;
+  private int AZONE = 1; // these are const values
+  private int BZONE = 2;
+  private int CZONE = 3;
+  private int final_zone = AZONE; // using a default so it doesnt mess things up
 
   /**
    * This function is executed when this Op Mode is selected from the Driver Station.
@@ -52,7 +56,7 @@ public class DragonAutonomous extends LinearOpMode {
     initializeRobot();
 
     List<Recognition> recognitions;
-    double index;
+    int index = 0; // VL: changing index to int from double
 
     vuforiaUltimateGoal = new VuforiaCurrentGame();
     tfodUltimateGoal = new TfodCurrentGame();
@@ -74,7 +78,7 @@ public class DragonAutonomous extends LinearOpMode {
         0, // zAngle
         true); // useCompetitionFieldTargetLocations
 
-    // Set min confidence threshold to 0.7
+    // Set min confidence threshold to 0.7; VL: maybe higher confidence??
     tfodUltimateGoal.initialize(vuforiaUltimateGoal, 0.7F, true, true);
 
     // Initialize TFOD before waitForStart.
@@ -92,8 +96,21 @@ public class DragonAutonomous extends LinearOpMode {
     waitForStart();
 
     if (opModeIsActive()) {
+      
+      // we may need to do a couple of tries to be really confident of the 
+      // response from the video detection. 
 
-      while (opModeIsActive()) {
+      int nvideo_attempts = 5 ;
+      int azone_successes = 0 ;
+      float azone_confidence = 0.0F ;
+      int bzone_successes = 0 ;
+      float bzone_confidence = 0.0F ;
+      int czone_successes = 0 ;
+      float czone_confidence = 0.0F ;
+
+      while (nvideo_attempts > 0) {
+        nvideo_attempts-- ; // reduce count first so you dont forget later 
+        
         // Put loop blocks here.
         // Get a list of recognitions from TFOD.
         recognitions = tfodUltimateGoal.getRecognitions();
@@ -101,74 +118,137 @@ public class DragonAutonomous extends LinearOpMode {
         // If list is empty, inform the user. Otherwise, go
         // through list and display info for each recognition.
         if (recognitions.size() == 0) {
-          telemetry.addData("TFOD", "No items detected.");
-          telemetry.addData("Target Zone", "A");
+          azone_successes++ ; 
+          azone_confidence += 0.9F ; // just giving it something nominal rather than 1.0 
+          telemetry.addData("TFOD ", "No items detected.");
+          telemetry.addData("Target Zone ", "A");
         } else {
+          if (recognitions.size() > 1) {
+            telemetry.addData("TFOD ", "More than 1 item detected");
+          }
+          
           index = 0;
-
           // Iterate through list and call a function to
           // display info for each recognized object.
           for (Recognition recognition_item : recognitions) {
             recognition = recognition_item;
+            
+            if (recognition.getLabel().equals("Single")) {
+              telemetry.addData("Target Zone ", "B");
+              bzone_successes++ ; 
+              bzone_confidence += recognition.getConfidence() ;
+            } else if (recognition.getLabel().equals("Quad")) {
+              telemetry.addData("Target Zone ", "C");
+              czone_successes++ ; 
+              czone_confidence += recognition.getConfidence() ;
+            } else {
+              telemetry.addData("TFOD ", "Unknown label " + recognition.getLabel());
+              telemetry.addData("Target Zone ", "Unknown");
+            }
             // Display info.
-            displayInfo(index);
+            //displayInfo(index); Commenting this out because details are not required
             // Increment index.
             index = index + 1;
-          }
+          } // end of recoginition list 
+        } // end of else for recognition list empty
+        telemetry.update() ; // make sure telemetry is updated 
+        
+        // the below is meant to carry out a small number of movements on 
+        // the robot to check if the result from vuforia is different
+        moveBackward(0.5) ;
+        sleep(200);
+        stopAllWheels();
+        sleep(200);
+        
+      } // end of while number of tries 
+      
+      telemetry.addData("AZone ", azone_successes + " " + azone_confidence);
+      telemetry.addData("BZone ", bzone_successes + " " + bzone_confidence);
+      telemetry.addData("CZone ", czone_successes + " " + czone_confidence);
+      
+      // Now decide on the final zone 
+      // This can be done in a number of ways 
+      // simple way would be to use the accumulated confidence levels 
+      if (azone_confidence > bzone_confidence) {
+        if (azone_confidence > czone_confidence) {
+          // A is the clear winner
+          final_zone = AZONE ; 
+          telemetry.addData("Final Zone", " A");
+        } else {
+          // C is the clear winner
+          final_zone = CZONE ;
+          telemetry.addData("Final Zone", " C");
         }
-          
-
-          drive1.setPower(-0.5);
-          drive2.setPower(-0.5);
-          drive3.setPower(-0.5);
-          drive4.setPower(-0.5);
-          sleep(100);
-    
-          drive1.setPower(0);
-          drive2.setPower(0);
-          drive3.setPower(0);
-          drive4.setPower(0);
-    
-          shooter(0.75);
-          sleep(2000);
-    
-          inclinedPlane(1);
-          sleep(2000);
-    
-          noodles(1);
-          sleep(10000);
-    
-          shooter(0);
-          inclinedPlane(0);
-          noodles(0);
-    
-    
-          
-    
-            telemetry.addData("red:", launchLine.red());
-            telemetry.addData("blue:", launchLine.blue());
-            telemetry.addData("green:", launchLine.green());
-            telemetry.addData("alpha:", launchLine.alpha());
-            telemetry.update();
+      } else {
+        if (bzone_confidence > czone_confidence){
+          // B is the clear winner 
+          final_zone = BZONE ;
+          telemetry.addData("Final Zone", " B");
+        } else {
+          // C is the winner
+          final_zone = CZONE ;
+          telemetry.addData("Final Zone", " C");
+        }
       }
-
-
-
-
-
-    }
+      telemetry.update();
+      
+      if (final_zone == AZONE) {
+        targetZoneA();
+      } else {
+        if (final_zone == BZONE) {
+          targetZoneB();
+        } else {
+          targetZoneC();
+        }
+      }
+      
+        /*
+        drive1.setPower(-0.5);
+        drive2.setPower(-0.5);
+        drive3.setPower(-0.5);
+        drive4.setPower(-0.5);
+        sleep(100);
+  
+        drive1.setPower(0);
+        drive2.setPower(0);
+        drive3.setPower(0);
+        drive4.setPower(0);
+  
+        shooter(0.75);
+        sleep(2000);
+  
+        inclinedPlane(1);
+        sleep(2000);
+  
+        noodles(1);
+        sleep(10000);
+  
+        shooter(0);
+        inclinedPlane(0);
+        noodles(0);
+  
+        telemetry.addData("red:", launchLine.red());
+        telemetry.addData("blue:", launchLine.blue());
+        telemetry.addData("green:", launchLine.green());
+        telemetry.addData("alpha:", launchLine.alpha());
+        telemetry.update();
+        */
+        
+    } // end of if Opmode is active 
+    
     // Deactivate TFOD.
     tfodUltimateGoal.deactivate();
 
     vuforiaUltimateGoal.close();
     tfodUltimateGoal.close();
-  }
+    
+  } // end of runOpmode
 
 
   /**
    * Display info (using telemetry) for a recognized object.
    */
-  private void displayInfo(double i) {
+  private void displayInfo(int i) {
     // Display label info.
     // Display the label and index number for the recognition.
     telemetry.addData("label " + i, recognition.getLabel());
@@ -182,218 +262,299 @@ public class DragonAutonomous extends LinearOpMode {
     telemetry.addData("Right, Bottom " + i, recognition.getRight() + ", " + recognition.getBottom());
 
     if (recognition.getLabel().equals("Single")) {
-      
-      String targetZone = "B";
-      telemetry.addData("Target Zone", "B");
+
+      telemetry.addData("Target Zone ", "B");
 
     } else if (recognition.getLabel().equals("Quad")) {
-    
-      targetZone = "C";
-      telemetry.addData("Target Zone", "C");
+
+      telemetry.addData("Target Zone ", "C");
 
     } else {
-      
-      targetZone = "A";
-      telemetry.addData("Target Zone", "A");
+
+      telemetry.addData("Target Zone ", "A");
 
     }
   }
 
 
-    private void initializeRobot() {
+  private void initializeRobot() {
 
-        //hardware maps of motors
-        drive1 = hardwareMap.dcMotor.get("drive1");
-        drive2 = hardwareMap.dcMotor.get("drive2");
-        drive3 = hardwareMap.dcMotor.get("drive3");
-        drive4 = hardwareMap.dcMotor.get("drive4");
-        intake = hardwareMap.dcMotor.get("intake");
-        shooter1 = hardwareMap.dcMotor.get("shooter1");
-        shooter2 = hardwareMap.dcMotor.get("shooter2");
-        wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
-        intakemotor = hardwareMap.get(CRServo.class, "intakemotor");
-        launchLine = hardwareMap.get(ColorSensor.class, "color");
-        distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
-        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack" );
-        //hardware maps of servos
+      //hardware maps of motors
+      drive1 = hardwareMap.dcMotor.get("drive1");
+      drive2 = hardwareMap.dcMotor.get("drive2");
+      drive3 = hardwareMap.dcMotor.get("drive3");
+      drive4 = hardwareMap.dcMotor.get("drive4");
+      intake = hardwareMap.dcMotor.get("intake");
+      shooter1 = hardwareMap.dcMotor.get("shooter1");
+      shooter2 = hardwareMap.dcMotor.get("shooter2");
+      wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
+      intakemotor = hardwareMap.get(CRServo.class, "intakemotor");
+      launchLine = hardwareMap.get(ColorSensor.class, "color");
+      distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
+      distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack" );
+      //hardware maps of servos
 
-        waffle1 = hardwareMap.servo.get("waffle1");
-        waffle2 = hardwareMap.servo.get("waffle2");
+      waffle1 = hardwareMap.servo.get("waffle1");
+      waffle2 = hardwareMap.servo.get("waffle2");
 
-        //directions
-        drive1.setDirection(DcMotor.Direction.REVERSE);
-        drive2.setDirection(DcMotor.Direction.REVERSE);
-        drive3.setDirection(DcMotor.Direction.FORWARD);
-        drive4.setDirection(DcMotor.Direction.FORWARD);
-        intake.setDirection(DcMotor.Direction.FORWARD);
-        shooter1.setDirection(DcMotor.Direction.FORWARD);
-        shooter2.setDirection(DcMotor.Direction.REVERSE);
-        wafflemotor.setDirection(DcMotor.Direction.FORWARD);
-        intakemotor.setDirection(CRServo.Direction.FORWARD);
+      //directions
+      drive1.setDirection(DcMotor.Direction.REVERSE);
+      drive2.setDirection(DcMotor.Direction.REVERSE);
+      drive3.setDirection(DcMotor.Direction.FORWARD);
+      drive4.setDirection(DcMotor.Direction.FORWARD);
+      intake.setDirection(DcMotor.Direction.FORWARD);
+      shooter1.setDirection(DcMotor.Direction.FORWARD);
+      shooter2.setDirection(DcMotor.Direction.REVERSE);
+      wafflemotor.setDirection(DcMotor.Direction.FORWARD);
+      intakemotor.setDirection(CRServo.Direction.FORWARD);
 
-        //zero power behavior
-        drive1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        drive2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        drive3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        drive4.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-
-
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
-
-    }
-
-    private void moveBackward(double power, long time) {
-
-      drive1.setPower(power);
-      drive2.setPower(power);
-      drive3.setPower(power);
-      drive4.setPower(power);
-      sleep(time);
-
-    }
-
-    private void moveForward(double power, long time) {
-
-      drive1.setPower(power * -1.0);
-      drive2.setPower(power * -1.0);
-      drive3.setPower(power * -1.0);
-      drive4.setPower(power * -1.0);
-      sleep(time);
-
-    }
-
-    private void shooter(double power) {
-
-        shooter1.setPower(power * -1.0);
-        shooter2.setPower(power);
-
-    }
-
-    private void inclinedPlane(double power) {
-
-        intake.setPower(power);
+      //zero power behavior
+      drive1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      drive2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      drive3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      drive4.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 
-    }
 
-    private void noodles(double power) {
+      telemetry.addData("Status", "Initialized");
+      telemetry.update();
 
-        intakemotor.setPower(power);
+  }
 
+  private void moveForward(double power) {
+    drive1.setPower(power * -1.0);
+    drive2.setPower(power * -1.0);
+    drive3.setPower(power * -1.0);
+    drive4.setPower(power * -1.0);
+  }
 
-    }
+  private void moveBackward(double power) {
+    drive1.setPower(power);
+    drive2.setPower(power);
+    drive3.setPower(power);
+    drive4.setPower(power);
+  }
+  
+  private void strafeLeft(double power) {
+    drive1.setPower(power * -1.0);
+    drive2.setPower(power);
+    drive3.setPower(power);
+    drive4.setPower(power * -1.0);
+  }
+  
+  private void strafeRight(double power) {
+    drive1.setPower(power);
+    drive2.setPower(power * -1.0);
+    drive3.setPower(power * -1.0);
+    drive4.setPower(power);
+  }
+  
+  private void stopAllWheels() {
+    drive1.setPower(0.0);
+    drive2.setPower(0.0);
+    drive3.setPower(0.0);
+    drive4.setPower(0.0);
+  }
 
-    private void wobbleGoal(double power) {
-    
-        wafflemotor.setPower(power);
-    
-    }
-    
-    private void openWobbleGoal() {
+  private void shooter(double power) {
+
+      shooter1.setPower(power * -1.0);
+      shooter2.setPower(power);
+
+  }
+
+  private void inclinedPlane(double power) {
+      intake.setPower(power);
+  }
+
+  private void noodles(double power) {
+      intakemotor.setPower(power);
+  }
+
+  private void targetZoneA() {
+      
+      strafeRight(0.5);
+      sleep(1000);
+      
+      stopAllWheels();
+      
+      drive1.setPower(-1);
+      drive2.setPower(-1);
+      drive3.setPower(1);
+      drive4.setPower(1);
+      sleep(250);
+      
+          
+      
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      
+        strafeRight(0.5);
+
+      }
+      
+      stopAllWheels();
+      
+      while (launchLine.alpha() < 230) {
         
-        waffle1.setPower(-1);
-        waffle2.setPower(1);
-    
-    }
-    
-    private void closeWobbleGoal() {
-    
-        waffle1.setPower(1);
-        waffle2.setPower(-1);
+        moveBackward(0.5);
         
-    }
+      }
+      
+      stopAllWheels();
+      
+      
+      
+      drive1.setPower(1);
+      drive2.setPower(1);
+      drive3.setPower(-1);
+      drive4.setPower(-1);
+      sleep(1500);
+      
+      
+      
+      stopAllWheels();
+      
+      waffle1.setPosition(1);
+      waffle2.setPosition(-1);
+      sleep(1000);
+      
+      wafflemotor.setPower(1);
+      sleep(1500);
+      
+      wafflemotor.setPower(0);
+      
+      waffle1.setPosition(-1);
+      waffle2.setPosition(1);
+      sleep(1000);
+      
+      waffle1.setPosition(0.5);
+      waffle2.setPosition(0.5);
+      
+      
+  }
 
-    private void starterStackDetection() {
+  private void targetZoneB() {
+      
+      strafeRight(0.5);
+      sleep(1000);
+      
+      stopAllWheels();
+      
+      drive1.setPower(-1);
+      drive2.setPower(-1);
+      drive3.setPower(1);
+      drive4.setPower(1);
+      sleep(150);
+      
+          
+      
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      
+        strafeRight(0.5);
 
-        if (targetZone = "B") {
-
-            telemetry.addData("Target Zone", "B");
-            
-            while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      }
+      
+      stopAllWheels();
+      
+      while (launchLine.alpha() < 275) {
         
-                drive1.setPower(0.5);
-                drive2.setPower(-0.5);
-                drive3.setPower(-0.5);
-                drive4.setPower(0.5);
-                
-            }
-            
-            while (distanceBack.getDistance(DistanceUnit.INCH) > 24) {
-                
-                drive1.setPower(0.5);
-                drive2.setPower(0.5);
-                drive3.setPower(0.5);
-                drive4.setPower(0.5);
-            
-            }
-            
-            // strafe to the left and drop Wobble Goal
-            drive1.setPower(-0.5);
-            drive2.setPower(0.5);
-            drive3.setPower(0.5);
-            drive4.setPower(-0.5);
-            
-            openWobbleGoal();
-            sleep();
-            
-        } else if (targetZone = "C") {
-
-            telemetry.addData("Target Zone", "C");
-            
-            while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+        moveBackward(0.5);
         
-                drive1.setPower(0.5);
-                drive2.setPower(-0.5);
-                drive3.setPower(-0.5);
-                drive4.setPower(0.5);
-                
-            }
-            
-            while (distanceBack.getDistance(DistanceUnit.INCH) > 10) {
+      }
+      
+      stopAllWheels();
+      
+      moveBackward(1.0);
+      sleep(1000);
+      
+      stopAllWheels();
 
-                drive1.setPower(0.5);
-                drive2.setPower(0.5);
-                drive3.setPower(0.5);
-                drive4.setPower(0.5);
+      while (launchLine.alpha() < 230) {
         
-            }
-            
-            // turn robot and drop Wobble Goal
-            openWobbleGoal();
-            sleep();
-            
-        } else {
-
-            telemetry.addData("Target Zone", "A");
-            
-            while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+        moveBackward(0.5);
         
-                drive1.setPower(0.5);
-                drive2.setPower(-0.5);
-                drive3.setPower(-0.5);
-                drive4.setPower(0.5);
-                
-            }
-            
-            // blue value
-            while (launchLine.alpha() < 275) {
+      }
+      
+      stopAllWheels();
+      
+  }
 
-                drive1.setPower(0.5);
-                drive2.setPower(0.5);
-                drive3.setPower(0.5);
-                drive4.setPower(0.5);
+  private void targetZoneC() {
+      
+      strafeRight(0.5);
+      sleep(1000);
+      
+      stopAllWheels();
+      
+      drive1.setPower(-1);
+      drive2.setPower(-1);
+      drive3.setPower(1);
+      drive4.setPower(1);
+      sleep(150);
+      
+          
+      
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      
+        strafeRight(0.5);
+
+      }
+      
+      stopAllWheels();
+      
+      while (launchLine.alpha() < 275) {
         
-            }
-            
-            // turn robot and drop Wobble Goal
-            openWobbleGoal();
-            sleep();
-        }
+        moveBackward(0.5);
+        
+      }
+      
+      stopAllWheels();
+      
+      moveBackward(1.0);
+      sleep(1000);
+      
+      stopAllWheels();
 
-    }
+      while (launchLine.alpha() < 230) {
+        
+        moveBackward(0.5);
+        
+      }
+      
+      stopAllWheels();
+      
+      while (distanceBack.getDistance(DistanceUnit.INCH) > 7) {
+      drive1.setPower(0.5);
+      drive2.setPower(0.5);
+      drive3.setPower(-0.5);
+      drive4.setPower(-0.5);
 
+      }
+      
+      stopAllWheels();
+      
+      
+      waffle1.setPosition(1);
+      waffle2.setPosition(-1);
+      sleep(1000);
+      
+      wafflemotor.setPower(1);
+      sleep(1500);
+      
+      wafflemotor.setPower(0);
+      
+      waffle1.setPosition(-1);
+      waffle2.setPosition(1);
+      sleep(1000);
+      
+      waffle1.setPosition(0.5);
+      waffle2.setPosition(0.5);
+      
+      
+      
+  }
 
-}
+  
+
+} // end of VLTestAutonomous ClassNotFoundException
 
