@@ -182,15 +182,18 @@ public class DragonAutonomous extends LinearOpMode {
     telemetry.addData("Right, Bottom " + i, recognition.getRight() + ", " + recognition.getBottom());
 
     if (recognition.getLabel().equals("Single")) {
-
+      
+      String targetZone = "B";
       telemetry.addData("Target Zone", "B");
 
     } else if (recognition.getLabel().equals("Quad")) {
-
+    
+      targetZone = "C";
       telemetry.addData("Target Zone", "C");
 
     } else {
-
+      
+      targetZone = "A";
       telemetry.addData("Target Zone", "A");
 
     }
@@ -282,33 +285,29 @@ public class DragonAutonomous extends LinearOpMode {
 
     }
 
-    private void targetZoneA() {
-
-        moveForward(1, 1000);
-
-
-
+    private void wobbleGoal(double power) {
+    
+        wafflemotor.setPower(power);
+    
     }
-
-    private void targetZoneB() {
-
-        moveForward(1, 1000);
-
-
-
+    
+    private void openWobbleGoal() {
+        
+        waffle1.setPower(-1);
+        waffle2.setPower(1);
+    
     }
-
-    private void targetZoneC() {
-
-        moveForward(1, 1000);
-
-
-
+    
+    private void closeWobbleGoal() {
+    
+        waffle1.setPower(1);
+        waffle2.setPower(-1);
+        
     }
 
     private void starterStackDetection() {
 
-        if (recognition.getLabel().equals("Single")) {
+        if (targetZone = "B") {
 
             telemetry.addData("Target Zone", "B");
             
@@ -321,16 +320,25 @@ public class DragonAutonomous extends LinearOpMode {
                 
             }
             
-            while (launchLine.alpha() < 275) {
-
+            while (distanceBack.getDistance(DistanceUnit.INCH) > 24) {
+                
                 drive1.setPower(0.5);
                 drive2.setPower(0.5);
                 drive3.setPower(0.5);
                 drive4.setPower(0.5);
-        
+            
             }
-
-        } else if (recognition.getLabel().equals("Quad")) {
+            
+            // strafe to the left and drop Wobble Goal
+            drive1.setPower(-0.5);
+            drive2.setPower(0.5);
+            drive3.setPower(0.5);
+            drive4.setPower(-0.5);
+            
+            openWobbleGoal();
+            sleep();
+            
+        } else if (targetZone = "C") {
 
             telemetry.addData("Target Zone", "C");
             
@@ -343,7 +351,7 @@ public class DragonAutonomous extends LinearOpMode {
                 
             }
             
-            while (launchLine.alpha() < 275) {
+            while (distanceBack.getDistance(DistanceUnit.INCH) > 10) {
 
                 drive1.setPower(0.5);
                 drive2.setPower(0.5);
@@ -352,13 +360,9 @@ public class DragonAutonomous extends LinearOpMode {
         
             }
             
-            while (distanceBack.getDistance(DistanceUnit.INCH) > 7) {
-                
-                drive1.setPower(-0.5);
-                drive2.setPower(-0.5);
-                drive3.setPower(-0.5);
-                drive4.setPower(-0.5); 
-            }
+            // turn robot and drop Wobble Goal
+            openWobbleGoal();
+            sleep();
             
         } else {
 
@@ -373,6 +377,7 @@ public class DragonAutonomous extends LinearOpMode {
                 
             }
             
+            // blue value
             while (launchLine.alpha() < 275) {
 
                 drive1.setPower(0.5);
@@ -382,6 +387,9 @@ public class DragonAutonomous extends LinearOpMode {
         
             }
             
+            // turn robot and drop Wobble Goal
+            openWobbleGoal();
+            sleep();
         }
 
     }
