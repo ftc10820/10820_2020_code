@@ -51,6 +51,10 @@ public class DragonTest extends LinearOpMode {
     private DistanceSensor distanceBack;
     private DistanceSensor distanceLeft;
     
+    //drive variables
+    double y = -gamepad1.left_stick_y; // reversed
+    double x = gamepad1.left_stick_x * 1.5; // counteract imperfect strafing(driver preference)
+    double rx = gamepad1.right_stick_x;
     @Override
     public void runOpMode() {
         
@@ -152,13 +156,14 @@ public class DragonTest extends LinearOpMode {
             
             if (gamepad1.a) {
                 
+                // closed
                 waffle1.setPosition(1);
                 waffle2.setPosition(-1);
-                telemetry.addData("wafflestatus", "closed");
-                telemetry.update();
+          
                 
             } else if (gamepad1.y) {
                 
+                // open
                 waffle1.setPosition(-1);
                 waffle2.setPosition(1);
 
@@ -169,31 +174,11 @@ public class DragonTest extends LinearOpMode {
 
             }
             
-            
-            if (gamepad1.right_bumper) {
-                
-            // go right
-            drive1.setPower(1);
-            drive2.setPower(-0.9);
-            drive3.setPower(-0.9);
-            drive4.setPower(1);
-                
-            } else if (gamepad1.left_bumper) {
-                
-            // go left
-            drive1.setPower(-0.9);
-            drive2.setPower(1);
-            drive3.setPower(1);
-            drive4.setPower(-0.9);
-                
-            } else {
-                    
-            drive1.setPower(gamepad1.left_stick_y);
-            drive2.setPower(gamepad1.left_stick_y);
-            drive3.setPower(gamepad1.right_stick_y);
-            drive4.setPower(gamepad1.right_stick_y);
-                
-            }
+            // mecanum drive equations
+            drive1.setPower(y + x + rx);
+            drive2.setPower(y - x + rx);
+            drive3.setPower(y - x - rx);
+            drive4.setPower(y + x - rx);
             
             telemetry.addData("alpha:", launchLine.alpha());
             telemetry.addData("Distance to the Right:", distanceRight.getDistance(DistanceUnit.INCH));
