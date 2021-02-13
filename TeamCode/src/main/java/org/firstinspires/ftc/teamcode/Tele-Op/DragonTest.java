@@ -1,3 +1,21 @@
+/*
+Copyright 2020 FIRST Tech Challenge Team FTC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -48,13 +66,9 @@ public class DragonTest extends LinearOpMode {
     //sensors
     private ColorSensor launchLine;
     private DistanceSensor distanceRight;
-    private DistanceSensor distanceBack;
+    private DistanceSensor distanceFront;
     private DistanceSensor distanceLeft;
     
-    //drive variables
-    double y = -gamepad1.left_stick_y; // reversed
-    double x = gamepad1.left_stick_x * 1.5; // counteract imperfect strafing(driver preference)
-    double rx = gamepad1.right_stick_x;
     @Override
     public void runOpMode() {
         
@@ -106,9 +120,9 @@ public class DragonTest extends LinearOpMode {
               
         //setting wafflemotor (trying to format floats) WILL try to convert floats to booleans later if have time
           
-            wafflemotor.setPower(gamepad2.right_stick_y);
+            // wafflemotor.setPower(gamepad2.right_stick_y);
             
-
+            wafflemotor.setPower(gamepad2.right_stick_y * 0.5); 
            
             if (gamepad2.dpad_up){
                 
@@ -120,11 +134,11 @@ public class DragonTest extends LinearOpMode {
                 
            } 
         
-            if (gamepad1.dpad_up) {
+            if (gamepad2.dpad_right) {
                 
                 gate.setPosition(0.25);
                 
-            } else if (gamepad1.dpad_down) {
+            } else if (gamepad2.dpad_down) {
                 
                 gate.setPosition(0.75);
                 
@@ -154,16 +168,15 @@ public class DragonTest extends LinearOpMode {
             }
             
             
-            if (gamepad1.a) {
+            if (gamepad2.left_bumper) {
                 
-                // closed
                 waffle1.setPosition(1);
                 waffle2.setPosition(-1);
-          
+                telemetry.addData("wafflestatus", "closed");
+                telemetry.update();
                 
-            } else if (gamepad1.y) {
+            } else if (gamepad2.right_bumper) {
                 
-                // open
                 waffle1.setPosition(-1);
                 waffle2.setPosition(1);
 
@@ -174,15 +187,35 @@ public class DragonTest extends LinearOpMode {
 
             }
             
-            // mecanum drive equations
-            drive1.setPower(y + x + rx);
-            drive2.setPower(y - x + rx);
-            drive3.setPower(y - x - rx);
-            drive4.setPower(y + x - rx);
+            
+            if (gamepad1.right_bumper) {
+                
+            // go right
+            drive1.setPower(-1);
+            drive2.setPower(1);
+            drive3.setPower(-1);
+            drive4.setPower(1);
+                
+            } else if (gamepad1.left_bumper) {
+                
+            // go left
+            drive1.setPower(1);
+            drive2.setPower(-1);
+            drive3.setPower(1);
+            drive4.setPower(-1);
+                
+            } else {
+                    
+            drive1.setPower(-gamepad1.right_stick_y);
+            drive2.setPower(-gamepad1.right_stick_y);
+            drive3.setPower(-gamepad1.left_stick_y);
+            drive4.setPower(-gamepad1.left_stick_y);
+                
+            }
             
             telemetry.addData("alpha:", launchLine.alpha());
             telemetry.addData("Distance to the Right:", distanceRight.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Distance to the Back:", distanceBack.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Distance to the Back:", distanceFront.getDistance(DistanceUnit.INCH));
             telemetry.addData("Distance to the Left:", distanceLeft.getDistance(DistanceUnit.INCH));
         
             telemetry.addData("Status", "Running");
@@ -215,7 +248,7 @@ public class DragonTest extends LinearOpMode {
         // sensors
         launchLine = hardwareMap.get(ColorSensor.class, "color");
         distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
-        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack" );
+        distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
         distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft" );
         
         //directions
@@ -224,11 +257,12 @@ public class DragonTest extends LinearOpMode {
         drive3.setDirection(DcMotor.Direction.FORWARD);
         drive4.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.FORWARD);
-        shooter1.setDirection(DcMotor.Direction.FORWARD);
+        shooter1.setDirection(DcMotor.Direction.REVERSE);
         shooter2.setDirection(DcMotor.Direction.REVERSE);
         wafflemotor.setDirection(DcMotor.Direction.FORWARD);
         intakemotor.setDirection(CRServo.Direction.FORWARD);
 
+        wafflemotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         
         telemetry.addData("Status", "Initialized");
         telemetry.update();
