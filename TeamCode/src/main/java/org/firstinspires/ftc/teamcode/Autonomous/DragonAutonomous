@@ -56,7 +56,8 @@ public class VLTestAutonomous extends LinearOpMode {
   private DistanceSensor distanceLeft;
   private DistanceSensor distanceFront;
   private DistanceSensor distanceRight;
-
+  private DistanceSensor distanceBack;
+  
   Recognition recognition;
   private int AZONE = 1; // these are const values
   private int BZONE = 2;
@@ -110,50 +111,8 @@ public class VLTestAutonomous extends LinearOpMode {
     // Enable following block to zoom in on target.
     tfodUltimateGoal.setZoom(2.5, 16 / 9);
     
-/*
-    driveBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    driveFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    
-    driveBR.setVelocity(250.0); 
-    sleep(5000) ;
-    telemetry.addData("driveBR", driveBR.getVelocity());
-    driveBR.setPower(0.0); 
-    sleep(3000) ;
-    
-    driveFR.setVelocity(250.0); 
-    sleep(5000) ;
-    telemetry.addData("driveFR", driveFR.getVelocity());
-    driveFR.setPower(0.0); 
-    sleep(3000) ;
 
-    driveBL.setVelocity(250.0); 
-    sleep(5000) ;
-    telemetry.addData("driveBL", driveBL.getVelocity());
-    driveBL.setPower(0.0); 
-    sleep(3000) ;
-
-    driveFL.setVelocity(250.0); 
-    sleep(5000) ;
-    telemetry.addData("driveFL", driveFL.getVelocity());
-    driveFL.setPower(0.0); 
-    sleep(3000) ;
-    */
-
-  
-    /*  
-    strafeLeftPower(0.5) ;
-    sleep(5000);
-    stopAllWheelsPower();
-    sleep(1000);
-    moveBackwardPower(0.25) ;
-    sleep (1000);
-    stopAllWheelsPower();
-    sleep(500);
-    getIMUAngles() ; // the angles get into lastAngles 
-    displayOrientationValues(lastAngles, "End") ;
-    */
+   
     
     
     telemetry.addData(">", "Press Play to start");
@@ -168,7 +127,7 @@ public class VLTestAutonomous extends LinearOpMode {
       // we may need to do a couple of tries to be really confident of the 
       // response from the video detection. 
 
-      int nvideo_attempts = 3 ; // change this if required. You can change it to 1 as well
+      int nvideo_attempts = 2; // change this if required. You can change it to 1 as well
       int azone_successes = 0 ;
       float azone_confidence = 0.0F ;
       int bzone_successes = 0 ;
@@ -362,7 +321,8 @@ public class VLTestAutonomous extends LinearOpMode {
       distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft");
       distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
       distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
-
+      distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
+      
       //hardware maps of servos
 
       waffle1 = hardwareMap.servo.get("waffle1");
@@ -520,22 +480,8 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void targetZoneA() {
       
-      strafeRightPower(0.5);
-      sleep(1000);
       
-      stopAllWheelsPower();
-      
-      sleep(150);
-      
-      driveFL.setPower(-1);
-      driveBL.setPower(-1);
-      driveBR.setPower(1);
-      driveFR.setPower(1);
-      sleep(400);
-      
-      stopAllWheelsPower();
-      
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
       
         strafeRightPower(0.5);
 
@@ -543,13 +489,6 @@ public class VLTestAutonomous extends LinearOpMode {
       
       stopAllWheelsPower();
       
-      driveFL.setPower(-1);
-      driveBL.setPower(-1);
-      driveBR.setPower(1);
-      driveFR.setPower(1);
-      sleep(150);
-      
-      stopAllWheelsPower();
       
       while (launchLine.alpha() < 275) {
         
@@ -580,34 +519,11 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void targetZoneB() {
       
-      strafeRightPower(0.5);
-      sleep(1000);
-      
-      stopAllWheelsPower();
-      
-      sleep(150);
-      
-      driveFL.setPower(-1);
-      driveBL.setPower(-1);
-      driveBR.setPower(1);
-      driveFR.setPower(1);
-      sleep(400);
-      
-      stopAllWheelsPower();
-      
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
       
         strafeRightPower(0.5);
 
       }
-      
-      stopAllWheelsPower();
-      
-      driveFL.setPower(-1);
-      driveBL.setPower(-1);
-      driveBR.setPower(1);
-      driveFR.setPower(1);
-      sleep(150);
       
       stopAllWheelsPower();
       
@@ -645,34 +561,11 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void targetZoneC() {
       
-      strafeRightPower(0.5);
-      sleep(1000);
-      
-      stopAllWheelsPower();
-      
-      sleep(150);
-      
-      driveFL.setPower(-1);
-      driveBL.setPower(-1);
-      driveBR.setPower(1);
-      driveFR.setPower(1);
-      sleep(400);
-      
-      stopAllWheelsPower();
-      
       while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
       
         strafeRightPower(0.5);
 
       }
-      
-      stopAllWheelsPower();
-      
-      driveFL.setPower(-1);
-      driveBL.setPower(-1);
-      driveBR.setPower(1);
-      driveFR.setPower(1);
-      sleep(200);
       
       stopAllWheelsPower();
       
