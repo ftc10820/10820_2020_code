@@ -351,8 +351,11 @@ public class VLTestAutonomous extends LinearOpMode {
       driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
       driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-      //initializeIMU();
+      initializeIMU();
 
+      waffle1.setPosition(1);
+      waffle2.setPosition(-1);
+      
       telemetry.addData("Status", "Initialized");
       telemetry.update();
 
@@ -426,7 +429,7 @@ public class VLTestAutonomous extends LinearOpMode {
     driveBR.setPower(power);
     driveFR.setPower(power);
     driveBL.setPower(power);
-    driveFl.setPower(power);
+    driveFL.setPower(power);
   }
   
   private void strafeRightPower(double power) {
@@ -449,6 +452,47 @@ public class VLTestAutonomous extends LinearOpMode {
     driveFR.setPower(power * -1.0);
     driveBL.setPower(power * -1.0);
     driveFL.setPower(power);
+  }
+  
+  private void moveBackwardCorrection(double plevel) {
+    
+    double target_distance = 7.0; 
+    double cur_distance = 0.0;
+    double abs_distance ;
+    double power_correction = 0.0;
+    
+    // Do the while loop until a certain time is reached 
+    while (launchLine.alpha() < 275) {
+      
+      cur_distance = distanceRight.getDistance(DistanceUnit.INCH); 
+      abs_distance = Math.abs(cur_distance - target_distance);
+      
+      if (abs_distance > 2.0) {
+        
+        power_correction = 0.5*plevel;
+        
+      } else {
+        
+        power_correction = plevel*(1.0-(0.5*(abs_distance/2.0)));
+      }
+      
+      if (cur_distance > target_distance) {
+        
+        driveFL.setPower(power_correction);
+        driveBL.setPower(plevel);
+        driveFR.setPower(power_correction);
+        driveBR.setPower(plevel);
+        
+      } else {
+        
+        driveFL.setPower(plevel);
+        driveBL.setPower(power_correction);
+        driveFR.setPower(plevel);
+        driveBR.setPower(power_correction);
+        
+      }
+    }
+    
   }
 
   // do we have to set the mode when switching off?  
@@ -483,7 +527,7 @@ public class VLTestAutonomous extends LinearOpMode {
       
       while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
       
-        strafeRightPower(0.5);
+        strafeRightPower(1);
 
       }
       
@@ -492,7 +536,7 @@ public class VLTestAutonomous extends LinearOpMode {
       
       while (launchLine.alpha() < 275) {
         
-        moveBackwardPower(0.5);
+        moveBackwardPower(1);
         
       }
       
@@ -521,7 +565,7 @@ public class VLTestAutonomous extends LinearOpMode {
       
       while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
       
-        strafeRightPower(0.5);
+        strafeRightPower(1);
 
       }
       
@@ -561,28 +605,28 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void targetZoneC() {
       
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 7) {
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
       
-        strafeRightPower(0.5);
+        strafeRightPower(1);
 
       }
       
       stopAllWheelsPower();
       
-      while (launchLine.alpha() < 275) {
+      while (launchLine.alpha() < 2000) {
         
-        moveBackwardPower(0.5);
+        moveBackwardPower(1);
         
       }
       
-      stopAllWheelsPower();
-      
-      moveBackwardPower(1.0);
-      sleep(1850);
       
       stopAllWheelsPower();
-
-
+      
+      moveBackwardPower(1);
+      sleep(2500);
+      
+      stopAllWheelsPower();
+      
       waffle1.setPosition(1);
       waffle2.setPosition(-1);
       sleep(1000);
@@ -606,4 +650,3 @@ public class VLTestAutonomous extends LinearOpMode {
   
 
 } // end of VLTestAutonomous ClassNotFoundException
-
