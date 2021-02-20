@@ -31,9 +31,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 @Autonomous
 public class VLTestAutonomous extends LinearOpMode {
 
-  private VuforiaCurrentGame vuforiaUltimateGoal;
-  private TfodCurrentGame tfodUltimateGoal;
-  
   // The orientation/position is based on a view of a person looking at
   // the robot from the top, shooter at front, intake at back
   
@@ -41,45 +38,161 @@ public class VLTestAutonomous extends LinearOpMode {
   private DcMotorEx driveFR; // Front Right drive motor 
   private DcMotorEx driveBL; // Back Left drive motor 
   private DcMotorEx driveFL; // Front Left drive motor
+
+  // The two shooter motors   
+  private DcMotor shooter1; // the slower core hex motor 
+  private DcMotor shooter2; // the faster ultra planetary gear motor 
   
-  private DcMotor shooter1;
-  private DcMotor shooter2;
-  private DcMotor intake;
+  // motors and servo for the conveyor belt and the noodles intake  
+  private DcMotor conveyor;     // motor that runs the conveyor/inclined plane 
+  private CRServo noodle;       // servo that runs the noodle intake mechanism
+                                // Note that this is a servo and not a motor 
+                                
+  private Servo liftgate;       // servo for gate on the conveyor  
+  
+  
+  // motor and servo for the wobble/waffle 
   private DcMotor wafflemotor;
-
-
-  private CRServo intakemotor;
   private Servo waffle1;
   private Servo waffle2;
 
+  // the different sensors 
   private ColorSensor launchLine;
   private DistanceSensor distanceLeft;
   private DistanceSensor distanceFront;
   private DistanceSensor distanceRight;
   private DistanceSensor distanceBack;
-  
-  Recognition recognition;
-  private int AZONE = 1; // these are const values
+
+  // variables for Vuforia and the zone detection 
+  private VuforiaCurrentGame vuforiaUltimateGoal;
+  private TfodCurrentGame tfodUltimateGoal;
+  private int AZONE = 1; // DONT CHANGE: these are const values
   private int BZONE = 2;
   private int CZONE = 3;
   private int final_zone = AZONE; // using a default so it doesnt mess things up
 
-  // For the IMU 
+  // Variables for the IMU 
   BNO055IMU               imu;
   Orientation             lastAngles = new Orientation();
   double                  globalAngle, power = .30, correction;
 
+  
   /**
    * This function is executed when this Op Mode is selected from the Driver Station.
    */
   @Override
   public void runOpMode() {
 
-    initializeRobot();
+    initializeRobot(); // intialize the complete robot including camera, imu, etc.
+    
+    runTestCode() ;  // run any test code if required 
+    //sleep(10000) ;
 
-    List<Recognition> recognitions;
-    int index = 0; // VL: changing index to int from double
+    telemetry.addData(">", "Press Play to start");
+    telemetry.update();
 
+    // Wait for start command from Driver Station.
+    waitForStart();
+
+    if (opModeIsActive()) {
+
+      detectZone() ; // determine number of rings and the zone for dropoff       
+      
+      if (final_zone == AZONE) {
+        targetZoneA();
+      } else {
+        if (final_zone == BZONE) {
+          targetZoneB();
+        } else {
+          targetZoneC();
+        }
+      }
+      
+      // afer dropping off the wobble goal; get to the shooting line 
+      
+        
+    } // end of if Opmode is active 
+    
+    // Deactivate TFOD.
+    tfodUltimateGoal.deactivate();
+
+    vuforiaUltimateGoal.close();
+    tfodUltimateGoal.close();
+    
+  } // end of runOpmode
+
+
+  private void initializeRobot() {
+    
+      // Initialize the vuforia first, so the camera stream is visible
+      initializeCamera();
+
+      //hardware maps of drive motors
+      driveBR = hardwareMap.get(DcMotorEx.class, "drive1");
+      driveFR = hardwareMap.get(DcMotorEx.class, "drive2");
+      driveFL = hardwareMap.get(DcMotorEx.class, "drive3");
+      driveBL = hardwareMap.get(DcMotorEx.class, "drive4");
+      
+      // hardware map for shooter, intake and conveyor 
+      shooter1 = hardwareMap.dcMotor.get("shooter1");
+      shooter2 = hardwareMap.dcMotor.get("shooter2");
+      conveyor = hardwareMap.dcMotor.get("intake");
+      noodle = hardwareMap.get(CRServo.class, "intakemotor");
+      //liftgate = hardwareMap.servo.get("liftgate");
+      
+      // hardware map for wobble/waffle 
+      wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
+      waffle1 = hardwareMap.servo.get("waffle1");
+      waffle2 = hardwareMap.servo.get("waffle2");
+      
+      // hardware map for sensors 
+      launchLine = hardwareMap.get(ColorSensor.class, "color");
+      distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft");
+      distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
+      distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
+      distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
+      
+      //directions for the differnet motors 
+      driveBR.setDirection(DcMotor.Direction.REVERSE);
+      driveFR.setDirection(DcMotor.Direction.REVERSE);
+      driveBL.setDirection(DcMotor.Direction.FORWARD);
+      driveFL.setDirection(DcMotor.Direction.FORWARD);
+      
+      conveyor.setDirection(DcMotor.Direction.FORWARD); 
+      noodle.setDirection(CRServo.Direction.FORWARD);
+      
+      shooter1.setDirection(DcMotor.Direction.FORWARD);
+      shooter2.setDirection(DcMotor.Direction.REVERSE);
+      wafflemotor.setDirection(DcMotor.Direction.FORWARD);
+
+      // initial position of the servos 
+      // Note that this will cause the waffle goal grabbers to close 
+      // and will start consuming power 
+      waffle1.setPosition(1);
+      waffle2.setPosition(-1);
+      //liftgate.setPosition(1);
+
+      //zero power behavior of the different motors
+      driveBL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      driveFL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      driveBR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      driveFR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+      // set the mode of operation; assumes that the encoder wires are connected
+      driveBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+      driveFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+      driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+      driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+      //initializeIMU();
+      
+      telemetry.addData("Status", "Initialized");
+      telemetry.update();
+
+  }
+  
+  private void initializeCamera() {
+    
     vuforiaUltimateGoal = new VuforiaCurrentGame();
     tfodUltimateGoal = new TfodCurrentGame();
 
@@ -109,256 +222,9 @@ public class VLTestAutonomous extends LinearOpMode {
     tfodUltimateGoal.activate();
 
     // Enable following block to zoom in on target.
+    // IMPORTANT: Camera zoom and view area are important parameters 
     tfodUltimateGoal.setZoom(2.5, 16 / 9);
     
-
-   
-    
-    
-    telemetry.addData(">", "Press Play to start");
-    telemetry.update();
-
-    // Wait for start command from Driver Station.
-
-    waitForStart();
-
-    if (opModeIsActive()) {
-      
-      // we may need to do a couple of tries to be really confident of the 
-      // response from the video detection. 
-
-      int nvideo_attempts = 2; // change this if required. You can change it to 1 as well
-      int azone_successes = 0 ;
-      float azone_confidence = 0.0F ;
-      int bzone_successes = 0 ;
-      float bzone_confidence = 0.0F ;
-      int czone_successes = 0 ;
-      float czone_confidence = 0.0F ;
-
-      while (nvideo_attempts > 0) {
-        nvideo_attempts-- ; // reduce count first so you dont forget later 
-        
-        // Put loop blocks here.
-        // Get a list of recognitions from TFOD.
-        recognitions = tfodUltimateGoal.getRecognitions();
-
-        // If list is empty, inform the user. Otherwise, go
-        // through list and display info for each recognition.
-        if (recognitions.size() == 0) {
-          azone_successes++ ; 
-          azone_confidence += 0.9F ; // just giving it something nominal rather than 1.0 
-          telemetry.addData("TFOD ", "No items detected.");
-          telemetry.addData("Target Zone ", "A");
-        } else {
-          if (recognitions.size() > 1) {
-            telemetry.addData("TFOD ", "More than 1 item detected");
-          }
-          
-          index = 0;
-          // Iterate through list and call a function to
-          // display info for each recognized object.
-          for (Recognition recognition_item : recognitions) {
-            recognition = recognition_item;
-            
-            if (recognition.getLabel().equals("Single")) {
-              telemetry.addData("Target Zone ", "B");
-              bzone_successes++ ; 
-              bzone_confidence += recognition.getConfidence() ;
-            } else if (recognition.getLabel().equals("Quad")) {
-              telemetry.addData("Target Zone ", "C");
-              czone_successes++ ; 
-              czone_confidence += recognition.getConfidence() ;
-            } else {
-              telemetry.addData("TFOD ", "Unknown label " + recognition.getLabel());
-              telemetry.addData("Target Zone ", "Unknown");
-            }
-            // Display info.
-            //displayInfo(index); Commenting this out because details are not required
-            // Increment index.
-            index = index + 1;
-          } // end of recoginition list 
-        } // end of else for recognition list empty
-        telemetry.update() ; // make sure telemetry is updated 
-        
-        // the below is meant to carry out a small number of movements on 
-        // the robot to check if the result from vuforia is different
-        moveBackwardPower(0.5) ;
-        sleep(200);
-        stopAllWheelsPower();
-        sleep(200);
-        
-      } // end of while number of tries 
-      
-      telemetry.addData("AZone ", azone_successes + " " + azone_confidence);
-      telemetry.addData("BZone ", bzone_successes + " " + bzone_confidence);
-      telemetry.addData("CZone ", czone_successes + " " + czone_confidence);
-      
-      // Now decide on the final zone 
-      // This can be done in a number of ways 
-      // simple way would be to use the accumulated confidence levels 
-      if (azone_confidence > bzone_confidence) {
-        if (azone_confidence > czone_confidence) {
-          // A is the clear winner
-          final_zone = AZONE ; 
-          telemetry.addData("Final Zone", " A");
-        } else {
-          // C is the clear winner
-          final_zone = CZONE ;
-          telemetry.addData("Final Zone", " C");
-        }
-      } else {
-        if (bzone_confidence > czone_confidence){
-          // B is the clear winner 
-          final_zone = BZONE ;
-          telemetry.addData("Final Zone", " B");
-        } else {
-          // C is the winner
-          final_zone = CZONE ;
-          telemetry.addData("Final Zone", " C");
-        }
-      }
-      telemetry.update();
-      
-      if (final_zone == AZONE) {
-        targetZoneA();
-      } else {
-        if (final_zone == BZONE) {
-          targetZoneB();
-        } else {
-          targetZoneC();
-        }
-      }
-      
-        /*
-        drive1.setPower(-0.5);
-        drive2.setPower(-0.5);
-        drive3.setPower(-0.5);
-        drive4.setPower(-0.5);
-        sleep(100);
-  
-        drive1.setPower(0);
-        drive2.setPower(0);
-        drive3.setPower(0);
-        drive4.setPower(0);
-  
-        shooter(0.75);
-        sleep(2000);
-  
-        inclinedPlane(1);
-        sleep(2000);
-  
-        noodles(1);
-        sleep(10000);
-  
-        shooter(0);
-        inclinedPlane(0);
-        noodles(0);
-  
-        telemetry.addData("red:", launchLine.red());
-        telemetry.addData("blue:", launchLine.blue());
-        telemetry.addData("green:", launchLine.green());
-        telemetry.addData("alpha:", launchLine.alpha());
-        telemetry.update();
-        */
-        
-    } // end of if Opmode is active 
-    
-    // Deactivate TFOD.
-    tfodUltimateGoal.deactivate();
-
-    vuforiaUltimateGoal.close();
-    tfodUltimateGoal.close();
-    
-  } // end of runOpmode
-
-
-  /**
-   * Display info (using telemetry) for a recognized object.
-   */
-  private void displayInfo(int i) {
-    // Display label info.
-    // Display the label and index number for the recognition.
-    telemetry.addData("label " + i, recognition.getLabel());
-    // Display upper corner info.
-    // Display the location of the top left corner
-    // of the detection boundary for the recognition
-    telemetry.addData("Left, Top " + i, recognition.getLeft() + ", " + recognition.getTop());
-    // Display lower corner info.
-    // Display the location of the bottom right corner
-    // of the detection boundary for the recognition
-    telemetry.addData("Right, Bottom " + i, recognition.getRight() + ", " + recognition.getBottom());
-
-    if (recognition.getLabel().equals("Single")) {
-
-      telemetry.addData("Target Zone ", "B");
-
-    } else if (recognition.getLabel().equals("Quad")) {
-
-      telemetry.addData("Target Zone ", "C");
-
-    } else {
-
-      telemetry.addData("Target Zone ", "A");
-
-    }
-  }
-
-
-  private void initializeRobot() {
-
-      //hardware maps of motors
-      driveBR = hardwareMap.get(DcMotorEx.class, "drive1");
-      driveFR = hardwareMap.get(DcMotorEx.class, "drive2");
-      driveFL = hardwareMap.get(DcMotorEx.class, "drive3");
-      driveBL = hardwareMap.get(DcMotorEx.class, "drive4");
-      
-      intake = hardwareMap.dcMotor.get("intake");
-      shooter1 = hardwareMap.dcMotor.get("shooter1");
-      shooter2 = hardwareMap.dcMotor.get("shooter2");
-      wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
-      intakemotor = hardwareMap.get(CRServo.class, "intakemotor");
-      launchLine = hardwareMap.get(ColorSensor.class, "color");
-      distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft");
-      distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
-      distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
-      distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
-      
-      //hardware maps of servos
-
-      waffle1 = hardwareMap.servo.get("waffle1");
-      waffle2 = hardwareMap.servo.get("waffle2");
-
-      //directions
-      driveBR.setDirection(DcMotor.Direction.REVERSE);
-      driveFR.setDirection(DcMotor.Direction.REVERSE);
-      driveBL.setDirection(DcMotor.Direction.FORWARD);
-      driveFL.setDirection(DcMotor.Direction.FORWARD);
-      intake.setDirection(DcMotor.Direction.FORWARD);
-      shooter1.setDirection(DcMotor.Direction.FORWARD);
-      shooter2.setDirection(DcMotor.Direction.REVERSE);
-      wafflemotor.setDirection(DcMotor.Direction.FORWARD);
-      intakemotor.setDirection(CRServo.Direction.FORWARD);
-
-      //zero power behavior
-      driveBL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-      driveFL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-      driveBR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-      driveFR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-      // set the mode of operation; assumes that the encoder wires are connected
-      driveBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-      driveFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-      driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-      driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-      initializeIMU();
-
-      waffle1.setPosition(1);
-      waffle2.setPosition(-1);
-      
-      telemetry.addData("Status", "Initialized");
-      telemetry.update();
-
   }
   
   private void initializeIMU() {
@@ -390,12 +256,245 @@ public class VLTestAutonomous extends LinearOpMode {
     telemetry.update( );
   }
   
-  private void getIMUAngles() {
-    lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
-  }
   
   private void displayOrientationValues(Orientation orient, String name) {
     telemetry.addData(name, "X: " + orient.firstAngle + ", Y: " + orient.secondAngle + ", Z: " + orient.thirdAngle);
+  }
+  
+  private void resetAngle()
+    {
+        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        globalAngle = 0;
+    }
+
+    private double getAngle() {
+        
+        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+
+        if (deltaAngle < -180)
+            deltaAngle += 360;
+        else if (deltaAngle > 180)
+            deltaAngle -= 360;
+
+        globalAngle += deltaAngle;
+
+        lastAngles = angles;
+
+        return globalAngle;
+    }
+
+    
+    private double checkDirection() {
+        
+        double correction, angle, gain = .10;
+
+        angle = getAngle();
+
+        if (angle == 0)
+            correction = 0;             // no adjustment.
+        else
+            correction = -angle;        // reverse sign of angle for correction.
+
+        correction = correction * gain;
+
+        return correction;
+    }
+    
+  
+  private void rotate(int degrees, double power) {
+        double  leftPower, rightPower;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            leftPower = power;
+            rightPower = -power;
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = -power;
+            rightPower = power;
+        }
+        else return;
+
+        // set power to rotate.
+        driveFL.setPower(leftPower);
+        driveBL.setPower(leftPower);
+        driveFR.setPower(rightPower);
+        driveBR.setPower(rightPower);
+        
+        // rotate until turn is completed.
+        if (degrees < 0)
+        {
+            // On right turn we have to get off zero first.
+            while (opModeIsActive() && getAngle() == 0) {}
+
+            while (opModeIsActive() && getAngle() > degrees) {}
+        }
+        else    // left turn.
+            while (opModeIsActive() && getAngle() < degrees) {}
+
+        // turn the motors off.
+        driveFL.setPower(0);
+        driveBL.setPower(0);
+        driveFR.setPower(0);
+        driveBR.setPower(0);
+
+        // wait for rotation to stop.
+        sleep(1000);
+
+        // reset angle tracking on new heading.
+        resetAngle();
+    }
+
+
+
+  // A simple run test code function   
+  private void runTestCode() {
+    /* execute any test code if required 
+     this is run before the start is pressed and helpful for debugging
+     */
+    telemetry.addData("Color Sensor ", launchLine.alpha());
+    telemetry.addData("distanceRight", " " + distanceRight.getDistance(DistanceUnit.INCH) + "in.");
+    telemetry.addData("distanceLeft", " " + distanceLeft.getDistance(DistanceUnit.INCH) + "in.");
+    telemetry.addData("distanceBack", " " + distanceBack.getDistance(DistanceUnit.INCH) + "in.");
+    telemetry.update() ;
+    
+    
+    stopAllWheelsPower();
+    
+    moveBackwardIMU(0.9);
+    sleep(5000);
+    
+    stopAllWheelsPower();
+    telemetry.addData("New Distance", distanceRight.getDistance(DistanceUnit.INCH));
+    telemetry.update();
+    return ;
+  }
+  
+  private void detectZone() {
+    // Sometimes Vuforia does not detect well on first go. 
+    // we may need to do a couple of tries to be really confident of the 
+    // response from the video detection. 
+    // For each attempt the robot moves closer to the rings a little bit
+    
+    int nvideo_attempts = 9; // change this if required. You can change it to 1 as well
+    int azone_successes = 0 ;
+    float azone_confidence = 0.0F ;
+    int bzone_successes = 0 ;
+    float bzone_confidence = 0.0F ;
+    int czone_successes = 0 ;
+    float czone_confidence = 0.0F ;
+
+    List<Recognition> recognitions;
+    int index = 0; 
+
+    // get the robot moving and during movement it can check the detection  
+    // a number of times 
+    moveBackwardPower(0.5);
+    
+    while (nvideo_attempts > 0) {
+      nvideo_attempts-- ; // reduce count first so you dont forget later 
+      
+      // Put loop blocks here.
+      // Get a list of recognitions from TFOD.
+      recognitions = tfodUltimateGoal.getRecognitions();
+
+      // If list is empty, inform the user. Otherwise, go
+      // through list and display info for each recognition.
+      if (recognitions.size() == 0) {
+        azone_successes++ ; 
+        azone_confidence += 0.9F ; // just giving it something nominal rather than 1.0 
+        telemetry.addData("TFOD ", "No items detected.");
+        telemetry.addData("Target Zone ", "A");
+      } else {
+        if (recognitions.size() > 1) {
+          telemetry.addData("TFOD ", "More than 1 item detected");
+        }
+        
+        index = 0;
+        // Iterate through list and call a function to
+        // display info for each recognized object.
+        for (Recognition recognition : recognitions) {
+
+          if (recognition.getLabel().equals("Single")) {
+            telemetry.addData("Target Zone ", "B");
+            bzone_successes++ ; 
+            bzone_confidence += recognition.getConfidence() ;
+          } else if (recognition.getLabel().equals("Quad")) {
+            telemetry.addData("Target Zone ", "C");
+            czone_successes++ ; 
+            czone_confidence += recognition.getConfidence() ;
+          } else {
+            telemetry.addData("TFOD ", "Unknown label " + recognition.getLabel());
+            telemetry.addData("Target Zone ", "Unknown");
+          }
+          // Display info.
+          //displayInfo(index); Commenting this out because details are not required
+          // Increment index.
+          index = index + 1;
+        } // end of recoginition list 
+      } // end of else for recognition list empty
+      telemetry.update() ; // make sure telemetry is updated 
+      
+      // since it is moving anyways 
+      sleep(200);
+    } // end of while number of tries 
+    
+    stopAllWheelsPower();
+    sleep(200);
+      
+    
+    telemetry.addData("AZone ", azone_successes + " " + azone_confidence);
+    telemetry.addData("BZone ", bzone_successes + " " + bzone_confidence);
+    telemetry.addData("CZone ", czone_successes + " " + czone_confidence);
+    
+    // Now decide on the final zone 
+    // This can be done in a number of ways 
+    // simple way would be to use the accumulated confidence levels 
+    if (azone_confidence > bzone_confidence) {
+      if (azone_confidence > czone_confidence) {
+        // A is the clear winner
+        final_zone = AZONE ; 
+        telemetry.addData("Final Zone", " A");
+      } else {
+        // C is the clear winner
+        final_zone = CZONE ;
+        telemetry.addData("Final Zone", " C");
+      }
+    } else {
+      if (bzone_confidence > czone_confidence){
+        // B is the clear winner 
+        final_zone = BZONE ;
+        telemetry.addData("Final Zone", " B");
+      } else {
+        // C is the winner
+        final_zone = CZONE ;
+        telemetry.addData("Final Zone", " C");
+      }
+    }
+    telemetry.update(); 
+    
+    // by the end of this routine, final_zone carries the zone value 
+  }
+  
+  private void moveForwardPower(double power) {
+    driveBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    driveFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    driveBR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    driveFR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    driveBR.setPower(power);
+    driveFR.setPower(power);
+    driveBL.setPower(power);
+    driveFL.setPower(power);
   }
   
   private void moveForwardVelocity(double nticks) {
@@ -421,17 +520,47 @@ public class VLTestAutonomous extends LinearOpMode {
     driveFL.setPower(power * -1.0);
   }
 
-  private void moveForwardPower(double power) {
-    driveBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    driveFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    driveBR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    driveFR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    driveBR.setPower(power);
-    driveFR.setPower(power);
-    driveBL.setPower(power);
-    driveFL.setPower(power);
+  private void moveBackwardVelocity(double nticks) {
+    driveBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveBL.setVelocity(nticks * -1.0) ;
+    driveFL.setVelocity(nticks * -1.0) ;
+    driveBR.setVelocity(nticks * -1.0) ;
+    driveFR.setVelocity(nticks * -1.0) ;
   }
   
+  private void moveForwardIMU(double power) {
+    
+    correction = checkDirection();
+
+    driveBL.setPower(power - correction);
+    driveFL.setPower(power - correction);
+    driveBR.setPower(power + correction);
+    driveFR.setPower(power + correction);
+
+  }
+  
+  private void moveBackwardIMU(double power) {
+    
+    correction = checkDirection();
+
+    driveBL.setPower((power - correction) * -1.0);
+    driveFL.setPower((power - correction) * -1.0);
+    driveBR.setPower((power + correction) * -1);
+    driveFR.setPower((power + correction) * -1);
+
+  }
+  
+  private void strafeRightIMU(double power) {
+    
+    
+    
+    
+    
+  }
+
   private void strafeRightPower(double power) {
     driveBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     driveFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -441,6 +570,17 @@ public class VLTestAutonomous extends LinearOpMode {
     driveFR.setPower(power);
     driveBL.setPower(power);
     driveFL.setPower(power * -1.0);
+  }
+  
+  private void strafeRightVelocity(double nticks) {
+    driveBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveBR.setVelocity(nticks * -1.0) ;
+    driveFR.setVelocity(nticks) ;
+    driveBL.setVelocity(nticks) ;
+    driveFL.setVelocity(nticks * -1.0) ;
   }
   
   private void strafeLeftPower(double power) {
@@ -453,16 +593,32 @@ public class VLTestAutonomous extends LinearOpMode {
     driveBL.setPower(power * -1.0);
     driveFL.setPower(power);
   }
+
+  private void strafeLeftVelocity(double nticks) {
+    driveBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    driveBR.setVelocity(nticks) ;
+    driveFR.setVelocity(nticks * -1.0) ;
+    driveBL.setVelocity(nticks * -1.0) ;
+    driveFL.setVelocity(nticks) ;
+  }
+  
+  
   
   private void moveBackwardCorrection(double plevel) {
     
-    double target_distance = 7.0; 
+    double target_distance = 15.0; 
     double cur_distance = 0.0;
-    double abs_distance ;
+    double abs_distance;
     double power_correction = 0.0;
     
+    // first just make the plevel negative
+    plevel = -1.0 * plevel ; 
+    
     // Do the while loop until a certain time is reached 
-    while (launchLine.alpha() < 275) {
+    while (launchLine.alpha() < 2000) {
       
       cur_distance = distanceRight.getDistance(DistanceUnit.INCH); 
       abs_distance = Math.abs(cur_distance - target_distance);
@@ -474,24 +630,26 @@ public class VLTestAutonomous extends LinearOpMode {
       } else {
         
         power_correction = plevel*(1.0-(0.5*(abs_distance/2.0)));
+        //power_correction = plevel*(1.0-(abs_distance/2.0));
       }
       
       if (cur_distance > target_distance) {
         
-        driveFL.setPower(power_correction);
+        driveFL.setPower(plevel);
         driveBL.setPower(plevel);
-        driveFR.setPower(power_correction);
-        driveBR.setPower(plevel);
+        driveFR.setPower(power_correction); // slow down the right side 
+        driveBR.setPower(power_correction);
         
       } else {
         
-        driveFL.setPower(plevel);
+        driveFL.setPower(power_correction); // slow down the left side 
         driveBL.setPower(power_correction);
         driveFR.setPower(plevel);
-        driveBR.setPower(power_correction);
+        driveBR.setPower(plevel);
         
       }
     }
+    stopAllWheelsPower();
     
   }
 
@@ -507,30 +665,45 @@ public class VLTestAutonomous extends LinearOpMode {
     driveFR.setPower(0.0);
   }
 
-  private void shooter(double power) {
+  private void runShooter(double power) {
 
       shooter1.setPower(power * -1.0);
       shooter2.setPower(power);
 
   }
+  
+  private void stopShooter() {
 
-  private void inclinedPlane(double power) {
-      intake.setPower(power);
+      shooter1.setPower(0.0);
+      shooter2.setPower(0.0);
+
   }
 
-  private void noodles(double power) {
-      intakemotor.setPower(power);
+  private void runInclinedPlane(double power) {
+      conveyor.setPower(power);
   }
+  
+  private void stopInclinedPlane() {
+      conveyor.setPower(0.0);
+  }
+
+  private void runNoodleIntake(double power) {
+      noodle.setPower(power);
+  }
+  
+  private void stopNoodleIntake() {
+      noodle.setPower(0.0);
+  }
+  
 
   private void targetZoneA() {
       
+      strafeRightPower(1);
+      while (distanceRight.getDistance(DistanceUnit.INCH) > 10) {
       
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
-      
-        strafeRightPower(1);
-
+        moveBackwardIMU(0.5);
+        
       }
-      
       stopAllWheelsPower();
       
       
@@ -541,7 +714,8 @@ public class VLTestAutonomous extends LinearOpMode {
       }
       
       stopAllWheelsPower();
-      
+
+      /*      
       waffle1.setPosition(1);
       waffle2.setPosition(-1);
       sleep(1000);
@@ -557,7 +731,7 @@ public class VLTestAutonomous extends LinearOpMode {
       
       waffle1.setPosition(0.5);
       waffle2.setPosition(0.5);
-      
+      */
       
   }
 
@@ -573,7 +747,7 @@ public class VLTestAutonomous extends LinearOpMode {
       
       while (launchLine.alpha() < 275) {
         
-        moveBackwardPower(0.5);
+        moveBackwardIMU(0.5);
         
       }
       
@@ -613,12 +787,9 @@ public class VLTestAutonomous extends LinearOpMode {
       
       stopAllWheelsPower();
       
-      while (launchLine.alpha() < 2000) {
-        
-        moveBackwardPower(1);
-        
-      }
-      
+
+      moveBackwardIMU(0.5);
+    
       
       stopAllWheelsPower();
       
@@ -643,10 +814,8 @@ public class VLTestAutonomous extends LinearOpMode {
       waffle1.setPosition(0.5);
       waffle2.setPosition(0.5);
       
-      
-      
+
   }
 
-  
 
 } // end of VLTestAutonomous ClassNotFoundException
