@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.lang.annotation.Target;
@@ -85,9 +86,10 @@ public class VLTestAutonomous extends LinearOpMode {
 
     initializeRobot(); // intialize the complete robot including camera, imu, etc.
     
-    runTestCode() ;  // run any test code if required 
+    //runTestCode() ;  // run any test code if required 
     //sleep(10000) ;
-
+    rotate(90, 0.5);
+    
     telemetry.addData(">", "Press Play to start");
     telemetry.update();
 
@@ -184,7 +186,7 @@ public class VLTestAutonomous extends LinearOpMode {
       driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
       driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-      //initializeIMU();
+      initializeIMU();
       
       telemetry.addData("Status", "Initialized");
       telemetry.update();
@@ -362,21 +364,39 @@ public class VLTestAutonomous extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
-    telemetry.addData("Color Sensor ", launchLine.alpha());
-    telemetry.addData("distanceRight", " " + distanceRight.getDistance(DistanceUnit.INCH) + "in.");
-    telemetry.addData("distanceLeft", " " + distanceLeft.getDistance(DistanceUnit.INCH) + "in.");
-    telemetry.addData("distanceBack", " " + distanceBack.getDistance(DistanceUnit.INCH) + "in.");
-    telemetry.update() ;
+     //testColorSensorRun() ;
+     /*
+     detectZone();
+     sleep(5000) ;
+     
+     strafeRightPower(1.0) ;
+     while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
+       ;
+     }
+     stopAllWheelsPower();
+     moveBackwardCorrection(1.0);
+     */
+     /*
+    strafeRightPower(1.0) ;
+    sleep(4000);
+    stopAllWheelsPower();
+    //rotate(180, 0.5);
     
+    sleep(1000);
     
+    strafeLeftPower(1.0) ;
+    sleep(4000);
+    stopAllWheelsPower();
+    rotate(180, 0.5);
+    
+    sleep(1000);
+    //stopAllWheelsPower();
+    //telemetry.addData("New Distance", distanceRight.getDistance(DistanceUnit.INCH));
+    //telemetry.update();
+    */
+    rotate(90, 0.5);
     stopAllWheelsPower();
     
-    moveBackwardIMU(0.9);
-    sleep(5000);
-    
-    stopAllWheelsPower();
-    telemetry.addData("New Distance", distanceRight.getDistance(DistanceUnit.INCH));
-    telemetry.update();
     return ;
   }
   
@@ -609,20 +629,42 @@ public class VLTestAutonomous extends LinearOpMode {
   
   private void moveBackwardCorrection(double plevel) {
     
-    double target_distance = 15.0; 
+    double target_distance = 15.0;
+    double max_deviation = 4.0 ; 
     double cur_distance = 0.0;
     double abs_distance;
     double power_correction = 0.0;
     
     // first just make the plevel negative
-    plevel = -1.0 * plevel ; 
+    moveBackwardPower(plevel);    
     
     // Do the while loop until a certain time is reached 
-    while (launchLine.alpha() < 2000) {
+    while (launchLine.alpha() < 1000) {
       
       cur_distance = distanceRight.getDistance(DistanceUnit.INCH); 
       abs_distance = Math.abs(cur_distance - target_distance);
       
+      if (abs_distance >= max_deviation) {
+        
+        if (cur_distance >= (target_distance + max_deviation)) {
+          strafeRightPower(plevel) ;
+          while(distanceRight.getDistance(DistanceUnit.INCH) > target_distance) {
+          }
+          moveBackwardPower(plevel) ;
+        } else {
+          if (cur_distance <= (target_distance - max_deviation)) {
+            strafeLeftPower(plevel) ;
+            while(distanceRight.getDistance(DistanceUnit.INCH) < 15.0) {
+            }
+            moveBackwardPower(plevel) ;
+          } else {
+            // it should not come here 
+            moveBackwardPower(plevel) ;
+          }
+        }
+      }
+
+      /*      
       if (abs_distance > 2.0) {
         
         power_correction = 0.5*plevel;
@@ -632,7 +674,6 @@ public class VLTestAutonomous extends LinearOpMode {
         power_correction = plevel*(1.0-(0.5*(abs_distance/2.0)));
         //power_correction = plevel*(1.0-(abs_distance/2.0));
       }
-      
       if (cur_distance > target_distance) {
         
         driveFL.setPower(plevel);
@@ -648,9 +689,9 @@ public class VLTestAutonomous extends LinearOpMode {
         driveBR.setPower(plevel);
         
       }
+      */
     }
     stopAllWheelsPower();
-    
   }
 
   // do we have to set the mode when switching off?  
@@ -817,5 +858,60 @@ public class VLTestAutonomous extends LinearOpMode {
 
   }
 
+  private void testColorSensorRun() {
+    int redval = 0 ;
+    int greenval = 0 ;
+    int blueval = 0 ; 
+    int combval = 0;
+    int alphaval = 0 ;
+    //double startTime = 0; 
+    //double curTime = 0; 
+    long startTime = 0; 
+    
+    //startTime = rtime.milliseconds() ; 
+    startTime = System.currentTimeMillis() ; 
+
+    redval = launchLine.red() ;
+    greenval = launchLine.green() ;
+    blueval = launchLine.blue() ; 
+    alphaval = launchLine.alpha() ;
+    telemetry.addData("Color Sensor Start", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
+
+    moveBackwardPower(1.0);    
+    
+    while ((System.currentTimeMillis() - startTime) < 4000) {
+      //telemetry.addData("distanceRight", " " + distanceRight.getDistance(DistanceUnit.INCH) + "in.");
+      //telemetry.addData("distanceLeft", " " + distanceLeft.getDistance(DistanceUnit.INCH) + "in.");
+      //telemetry.addData("distanceBack", " " + distanceBack.getDistance(DistanceUnit.INCH) + "in.");
+      int tempredval = launchLine.red() ;
+      int tempgreenval = launchLine.green() ;
+      int tempblueval = launchLine.blue() ;
+      int tempalphaval = launchLine.alpha() ;
+      int tempval = tempredval + tempgreenval + tempblueval ; 
+      if (tempval > combval) {
+        redval = tempredval ; 
+        greenval = tempgreenval ; 
+        blueval = tempblueval ; 
+        alphaval = tempalphaval ; 
+        combval = tempval ; 
+        
+      }
+      /*
+      if (tempalphaval > 1000) {
+        redval = tempredval ; 
+        greenval = tempgreenval ; 
+        blueval = tempblueval ; 
+        alphaval = tempalphaval ; 
+        combval = tempval ; 
+        break ;
+      }
+      */
+    }
+    telemetry.addData("Color Sensor End", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
+    telemetry.update() ;
+    stopAllWheelsPower();
+    
+    sleep(10000) ; // sleep for sometime so you can see the values
+  }
 
 } // end of VLTestAutonomous ClassNotFoundException
