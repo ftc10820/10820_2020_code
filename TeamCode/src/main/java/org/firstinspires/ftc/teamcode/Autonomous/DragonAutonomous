@@ -34,6 +34,7 @@ public class VLTestAutonomous extends LinearOpMode {
 
   // The orientation/position is based on a view of a person looking at
   // the robot from the top, shooter at front, intake at back
+  // Right is where the wabble goal mechanism is 
   
   private DcMotorEx driveBR; // Back Right drive motor 
   private DcMotorEx driveFR; // Front Right drive motor 
@@ -58,7 +59,8 @@ public class VLTestAutonomous extends LinearOpMode {
   private Servo waffle2;
 
   // the different sensors 
-  private ColorSensor launchLine;
+  private ColorSensor launchLineRight;
+  private ColorSensor launchLineLeft;
   private DistanceSensor distanceLeft;
   private DistanceSensor distanceFront;
   private DistanceSensor distanceRight;
@@ -86,9 +88,8 @@ public class VLTestAutonomous extends LinearOpMode {
 
     initializeRobot(); // intialize the complete robot including camera, imu, etc.
     
-    //runTestCode() ;  // run any test code if required 
-    //sleep(10000) ;
-    rotate(90, 0.5);
+    runTestCode() ;  // run any test code if required 
+    sleep(1000) ;
     
     telemetry.addData(">", "Press Play to start");
     telemetry.update();
@@ -100,18 +101,38 @@ public class VLTestAutonomous extends LinearOpMode {
 
       detectZone() ; // determine number of rings and the zone for dropoff       
       
+      // Irrespective of the zone, the first action is to get to the 
+      // LaunchLine and align 
+      // First just strafe and get closer to the perimeter wall 
+      // and move backward aligning with the perimeter wall 
+      // till the LaunchLine and then adjust 
+      //moveBackwardAlongPerimeterToLaunchLineAndAlign(1.0) ;
+      strafeRightPower(1.0) ;
+      while(distanceRight.getDistance(DistanceUnit.INCH) > 15.0) {
+      }
+      driveFR.setPower(-1.0);
+      driveBR.setPower(-1.0);
+      driveFL.setPower(0.0);
+      driveBL.setPower(0.0);
+      sleep(200);
+      stopAllWheelsPower();
+      
+      moveBackwardToLaunchLineAndAlign(0.75) ;
+      sleep(1000);
+      
       if (final_zone == AZONE) {
         targetZoneA();
       } else {
         if (final_zone == BZONE) {
-          targetZoneB();
+          targetZoneB(); 
         } else {
           targetZoneC();
         }
       }
       
-      // afer dropping off the wobble goal; get to the shooting line 
-      
+      // strafe along the LaunchLine till we reach the shooting location
+      // shoot all 3 power shots, moving for each one  
+      // Ensure that the robot is back on the launchLine
         
     } // end of if Opmode is active 
     
@@ -123,6 +144,38 @@ public class VLTestAutonomous extends LinearOpMode {
     
   } // end of runOpmode
 
+  // A simple run test code function   
+  private void runTestCode() {
+    /* execute any test code if required 
+     this is run before the start is pressed and helpful for debugging
+     */
+    //testRightColorSensorRun() ;
+    //moveBackwardToLaunchLineAndAlign(0.75) ; 
+    //testRightColorSensorRun() ;
+    //moveBackwardToLaunchLineAndAlign(0.75) ;
+    //moveBackwardAlongPerimeterToLaunchLineAndAlign(0.75) ;
+    //sleep(10000) ; // sleep for sometime so you can see the values
+    
+    //rotate(180, 0.75) ;
+    
+     /*
+     detectZone();
+     sleep(5000) ;
+     
+     strafeRightPower(1.0) ;
+     while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
+       ;
+     }
+     stopAllWheelsPower();
+     moveBackwardCorrection(1.0);
+     */
+    //rotate(180, 0.5);
+    
+    //stopAllWheelsPower();
+    
+    return ;
+  }
+  
 
   private void initializeRobot() {
     
@@ -148,7 +201,8 @@ public class VLTestAutonomous extends LinearOpMode {
       waffle2 = hardwareMap.servo.get("waffle2");
       
       // hardware map for sensors 
-      launchLine = hardwareMap.get(ColorSensor.class, "color");
+      launchLineLeft = hardwareMap.get(ColorSensor.class, "colorLeft");
+      launchLineRight = hardwareMap.get(ColorSensor.class, "colorRight");
       distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft");
       distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
       distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
@@ -169,7 +223,7 @@ public class VLTestAutonomous extends LinearOpMode {
 
       // initial position of the servos 
       // Note that this will cause the waffle goal grabbers to close 
-      // and will start consuming power 
+      // and will start consuming power
       waffle1.setPosition(1);
       waffle2.setPosition(-1);
       //liftgate.setPosition(1);
@@ -263,143 +317,96 @@ public class VLTestAutonomous extends LinearOpMode {
     telemetry.addData(name, "X: " + orient.firstAngle + ", Y: " + orient.secondAngle + ", Z: " + orient.thirdAngle);
   }
   
-  private void resetAngle()
-    {
-        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+  private void resetAngle() {
+    lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
-        globalAngle = 0;
-    }
-
-    private double getAngle() {
-        
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-
-        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
-
-        if (deltaAngle < -180)
-            deltaAngle += 360;
-        else if (deltaAngle > 180)
-            deltaAngle -= 360;
-
-        globalAngle += deltaAngle;
-
-        lastAngles = angles;
-
-        return globalAngle;
-    }
-
-    
-    private double checkDirection() {
-        
-        double correction, angle, gain = .10;
-
-        angle = getAngle();
-
-        if (angle == 0)
-            correction = 0;             // no adjustment.
-        else
-            correction = -angle;        // reverse sign of angle for correction.
-
-        correction = correction * gain;
-
-        return correction;
-    }
-    
-  
-  private void rotate(int degrees, double power) {
-        double  leftPower, rightPower;
-
-        // restart imu movement tracking.
-        resetAngle();
-
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
-
-        if (degrees < 0)
-        {   // turn right.
-            leftPower = power;
-            rightPower = -power;
-        }
-        else if (degrees > 0)
-        {   // turn left.
-            leftPower = -power;
-            rightPower = power;
-        }
-        else return;
-
-        // set power to rotate.
-        driveFL.setPower(leftPower);
-        driveBL.setPower(leftPower);
-        driveFR.setPower(rightPower);
-        driveBR.setPower(rightPower);
-        
-        // rotate until turn is completed.
-        if (degrees < 0)
-        {
-            // On right turn we have to get off zero first.
-            while (opModeIsActive() && getAngle() == 0) {}
-
-            while (opModeIsActive() && getAngle() > degrees) {}
-        }
-        else    // left turn.
-            while (opModeIsActive() && getAngle() < degrees) {}
-
-        // turn the motors off.
-        driveFL.setPower(0);
-        driveBL.setPower(0);
-        driveFR.setPower(0);
-        driveBR.setPower(0);
-
-        // wait for rotation to stop.
-        sleep(1000);
-
-        // reset angle tracking on new heading.
-        resetAngle();
-    }
-
-
-
-  // A simple run test code function   
-  private void runTestCode() {
-    /* execute any test code if required 
-     this is run before the start is pressed and helpful for debugging
-     */
-     //testColorSensorRun() ;
-     /*
-     detectZone();
-     sleep(5000) ;
-     
-     strafeRightPower(1.0) ;
-     while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
-       ;
-     }
-     stopAllWheelsPower();
-     moveBackwardCorrection(1.0);
-     */
-     /*
-    strafeRightPower(1.0) ;
-    sleep(4000);
-    stopAllWheelsPower();
-    //rotate(180, 0.5);
-    
-    sleep(1000);
-    
-    strafeLeftPower(1.0) ;
-    sleep(4000);
-    stopAllWheelsPower();
-    rotate(180, 0.5);
-    
-    sleep(1000);
-    //stopAllWheelsPower();
-    //telemetry.addData("New Distance", distanceRight.getDistance(DistanceUnit.INCH));
-    //telemetry.update();
-    */
-    rotate(90, 0.5);
-    stopAllWheelsPower();
-    
-    return ;
+    globalAngle = 0;
   }
-  
+
+  private double getAngle() {
+        
+    Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+    double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+
+    if (deltaAngle < -180)
+        deltaAngle += 360;
+    else if (deltaAngle > 180)
+        deltaAngle -= 360;
+
+    globalAngle += deltaAngle;
+
+    lastAngles = angles;
+
+    return globalAngle;
+  }
+
+    
+  private double checkDirection() {
+        
+    double correction, angle, gain = .10;
+
+    angle = getAngle();
+
+    if (angle == 0)
+        correction = 0;             // no adjustment.
+    else
+        correction = -angle;        // reverse sign of angle for correction.
+
+    correction = correction * gain;
+
+    return correction;
+  }
+    
+  private void rotate(int degrees, double power) {
+    double  leftPower, rightPower;
+
+    // restart imu movement tracking.
+    resetAngle();
+
+    // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+    // clockwise (right).
+
+    if (degrees < 0)
+    {   // turn right.
+        leftPower = power;
+        rightPower = -power;
+    }
+    else if (degrees > 0)
+    {   // turn left.
+        leftPower = -power;
+        rightPower = power;
+    }
+    else return;
+
+    // set power to rotate.
+    driveFL.setPower(leftPower);
+    driveBL.setPower(leftPower);
+    driveFR.setPower(rightPower);
+    driveBR.setPower(rightPower);
+    
+    // rotate until turn is completed.
+    if (degrees < 0)
+    {
+        // On right turn we have to get off zero first.
+        while (getAngle() == 0) {}
+
+        while (getAngle() > degrees) {}
+    }
+    else    // left turn.
+        while (getAngle() < degrees) {}
+
+    // turn the motors off.
+    stopAllWheelsPower();
+    
+    // wait for rotation to stop.
+    sleep(1000);
+
+    // reset angle tracking on new heading.
+    resetAngle();
+  }
+
+
   private void detectZone() {
     // Sometimes Vuforia does not detect well on first go. 
     // we may need to do a couple of tries to be really confident of the 
@@ -575,10 +582,13 @@ public class VLTestAutonomous extends LinearOpMode {
   
   private void strafeRightIMU(double power) {
     
-    
-    
-    
-    
+    correction = checkDirection();
+
+    driveBL.setPower((power - correction));
+    driveFL.setPower((power - correction) * -1.0);
+    driveBR.setPower((power + correction) * -1);
+    driveFR.setPower((power + correction));
+
   }
 
   private void strafeRightPower(double power) {
@@ -627,19 +637,25 @@ public class VLTestAutonomous extends LinearOpMode {
   
   
   
-  private void moveBackwardCorrection(double plevel) {
+  private void moveBackwardAlongPerimeterToLaunchLineAndAlign(double plevel) {
     
-    double target_distance = 15.0;
-    double max_deviation = 4.0 ; 
+    double target_distance = 15.0; // 2 parameters for tuning 
+    double max_deviation = 4.0 ;   // Change these two parameters for alignment 
     double cur_distance = 0.0;
     double abs_distance;
     double power_correction = 0.0;
     
+    int minWhiteColorAlpha = 1000 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
     // first just make the plevel negative
     moveBackwardPower(plevel);    
     
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
     // Do the while loop until a certain time is reached 
-    while (launchLine.alpha() < 1000) {
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
       
       cur_distance = distanceRight.getDistance(DistanceUnit.INCH); 
       abs_distance = Math.abs(cur_distance - target_distance);
@@ -647,24 +663,30 @@ public class VLTestAutonomous extends LinearOpMode {
       if (abs_distance >= max_deviation) {
         
         if (cur_distance >= (target_distance + max_deviation)) {
-          strafeRightPower(plevel) ;
+          strafeRightPower(1.0) ;
           while(distanceRight.getDistance(DistanceUnit.INCH) > target_distance) {
           }
           moveBackwardPower(plevel) ;
         } else {
           if (cur_distance <= (target_distance - max_deviation)) {
-            strafeLeftPower(plevel) ;
-            while(distanceRight.getDistance(DistanceUnit.INCH) < 15.0) {
+            strafeLeftPower(1.0) ;
+            while(distanceRight.getDistance(DistanceUnit.INCH) < target_distance) {
             }
             moveBackwardPower(plevel) ;
           } else {
             // it should not come here 
             moveBackwardPower(plevel) ;
+            // Look at exception handling later ; for now just use telemetry 
+            telemetry.addData("Exception", "Error in target distance") ;
+            telemetry.update() ;
+            //throw new Exception("Error in target distance") ;
+            // Exception requires try and catch blocks 
           }
         }
       }
 
       /*      
+      // A different strategy; but not working well
       if (abs_distance > 2.0) {
         
         power_correction = 0.5*plevel;
@@ -690,6 +712,139 @@ public class VLTestAutonomous extends LinearOpMode {
         
       }
       */
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+      
+    }
+    //stopAllWheelsPower();
+    //telemetry.addData("Color sensor First","Right: " + colorRight + " Left: " + colorLeft) ;
+    //telemetry.addData("Color sensor Second","Right: " + launchLineRight.alpha() + " Left: " + launchLineLeft.alpha()) ;
+    //telemetry.update();
+    //sleep(1000);
+    
+    // Now align it to the LaunchLine using the two color sensors 
+    if ((colorRight >= minWhiteColorAlpha) && (colorLeft >= minWhiteColorAlpha)) {
+        // dont need to do anything 
+    } else {
+      if ((colorRight < minWhiteColorAlpha) && (colorLeft >= minWhiteColorAlpha)) {
+        // move the right wheels 
+        // Note that we are moving backward 
+        // May need to go a bit slower rather than full speed
+        driveFR.setPower(plevel * -1.0);
+        driveBR.setPower(plevel * -1.0);
+        driveFL.setPower(0.0);
+        driveBL.setPower(0.0);
+        // Note that the left wheels are stationary 
+        while (launchLineRight.alpha() < minWhiteColorAlpha) {
+          // it might be required to move both 
+          // How about getting rightColor closer to leftColor 
+          // Will it be any better? 
+          ;
+        }
+        stopAllWheelsPower();
+      } else {
+        if ((colorRight >= minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+          // move the left wheels 
+          driveFL.setPower(plevel * -1.0);
+          driveBL.setPower(plevel * -1.0);
+          driveFR.setPower(0.0);
+          driveBR.setPower(0.0);
+          while (launchLineLeft.alpha() < minWhiteColorAlpha) {
+            // it might be required to move both 
+            // How about getting rightColor closer to leftColor 
+            // Will it be any better? 
+            ;
+          }
+          stopAllWheelsPower();
+        } else {
+          // this means that neither of the two sensors are on the whiteline
+          // Ideally, it should not come here. 
+          // If it does, throw an exception 
+          // Look at exception handling later ; for now just use telemetry 
+          telemetry.addData("Exception", "Both color sensors shows less than minWhiteColorAlpha 1") ;
+          telemetry.update() ;
+          //throw new Exception("Both color sensors shows less than minWhiteColorAlpha") ;
+          // Exception requires try and catch blocks 
+        }
+      }
+    }
+    stopAllWheelsPower();
+  }
+
+
+  private void moveBackwardToLaunchLineAndAlign(double plevel) {
+    
+    int minWhiteColorAlpha = 1000 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
+    int colorRightAfterBreak ;
+    
+    // start moving back 
+    moveBackwardPower(plevel);    
+    
+    // Do the while loop until the color is reached
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+    }
+    //stopAllWheelsPower();
+    //sleep(2000);
+    //telemetry.addData("Color sensor First","Right: " + colorRight + " Left: " + colorLeft) ;
+    //telemetry.addData("Color sensor Second","Right: " + launchLineRight.alpha() + " Left: " + launchLineLeft.alpha()) ;
+    //telemetry.update();
+    //sleep(1000);
+    
+    // check if the braking action caused some changes 
+    
+    
+    // Now align it to the LaunchLine using the two color sensors 
+    if ((colorRight >= minWhiteColorAlpha) && (colorLeft >= minWhiteColorAlpha)) {
+        // dont need to do anything 
+    } else {
+      if ((colorRight < minWhiteColorAlpha) && (colorLeft >= minWhiteColorAlpha)) {
+        // move the right wheels 
+        // Note that we are moving backward 
+        // May need to go a bit slower rather than full speed
+        driveFR.setPower(plevel * -1.0);
+        driveBR.setPower(plevel * -1.0);
+        driveFL.setPower(0.0);
+        driveBL.setPower(0.0);
+        // Note that the left wheels are stationary 
+        while (launchLineRight.alpha() < minWhiteColorAlpha) {
+          // it might be required to move both 
+          // How about getting rightColor closer to leftColor 
+          // Will it be any better? 
+          ;
+        }
+        stopAllWheelsPower();
+      } else {
+        if ((colorRight >= minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+          // move the left wheels 
+          driveFL.setPower(plevel * -1.0);
+          driveBL.setPower(plevel * -1.0);
+          driveFR.setPower(0.0);
+          driveBR.setPower(0.0);
+          while (launchLineLeft.alpha() < minWhiteColorAlpha) {
+            // it might be required to move both 
+            // How about getting rightColor closer to leftColor 
+            // Will it be any better? 
+            ;
+          }
+          stopAllWheelsPower();
+        } else {
+          // this means that neither of the two sensors are on the whiteline
+          // Ideally, it should not come here. 
+          // If it does, throw an exception 
+          // Look at exception handling later ; for now just use telemetry 
+          telemetry.addData("Exception", "Both color sensors shows less than minWhiteColorAlpha 2") ;
+          telemetry.update() ;
+          //throw new Exception("Both color sensors shows less than minWhiteColorAlpha") ;
+          // Exception requires try and catch blocks 
+        }
+      }
     }
     stopAllWheelsPower();
   }
@@ -736,129 +891,98 @@ public class VLTestAutonomous extends LinearOpMode {
       noodle.setPower(0.0);
   }
   
-
-  private void targetZoneA() {
-      
-      strafeRightPower(1);
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 10) {
-      
-        moveBackwardIMU(0.5);
-        
-      }
-      stopAllWheelsPower();
-      
-      
-      while (launchLine.alpha() < 275) {
-        
-        moveBackwardPower(1);
-        
-      }
-      
-      stopAllWheelsPower();
-
-      /*      
-      waffle1.setPosition(1);
-      waffle2.setPosition(-1);
-      sleep(1000);
-      
+  private void dropWaffleGoal() {
+    
+      // lower the waffle motor and then stop it 
       wafflemotor.setPower(1);
       sleep(1500);
-      
       wafflemotor.setPower(0);
       
+      // Open the grips 
       waffle1.setPosition(-1);
       waffle2.setPosition(1);
       sleep(1000);
-      
+
+      // then release the grips
+      // do we really need to do this? It might take up continuous power       
       waffle1.setPosition(0.5);
       waffle2.setPosition(0.5);
-      */
-      
+  }
+  
+
+  private void targetZoneA() {
+    
+    // drop the wobble goal.
+    dropWaffleGoal();
+    
+    // turn 180 degrees 
+    rotate(180,1.0) ;
+    
+    // make sure that the robot is back on the white line 
+
   }
 
   private void targetZoneB() {
-      
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
-      
-        strafeRightPower(1);
 
-      }
-      
-      stopAllWheelsPower();
-      
-      while (launchLine.alpha() < 275) {
-        
-        moveBackwardIMU(0.5);
-        
-      }
-      
-      stopAllWheelsPower();
-      
-      driveBR.setPower(-1);
-      driveFR.setPower(-1);
-      sleep(1000);
-      
-      stopAllWheelsPower();
-      
-      waffle1.setPosition(1);
-      waffle2.setPosition(-1);
-      sleep(1000);
-      
-      wafflemotor.setPower(1);
-      sleep(1500);
-      
-      wafflemotor.setPower(0);
-      
-      waffle1.setPosition(-1);
-      waffle2.setPosition(1);
-      sleep(1000);
-      
-      waffle1.setPosition(0.5);
-      waffle2.setPosition(0.5);
-      
+    // moveBackward for 2 seconds 
+    moveBackwardPower(0.75) ;
+    sleep(1500) ;
+    stopAllWheelsPower();
+    
+    // strafe left for 2 seconds 
+    strafeLeftPower(1.0) ;
+    sleep(3000) ;
+    stopAllWheelsPower();
+    // drop the wabble goal 
+    dropWaffleGoal();
+    // strafe left to clear off the waffle 
+    strafeLeftPower(1.0) ;
+    sleep(500) ;
+    stopAllWheelsPower();
+    
+    // turn 180 degrees 
+    // Better to turn now rather than later 
+    rotate(180,0.75) ;
+    
+    // move back to the LaunchLine and align 
+    // dont use distance sensor this time 
+    moveBackwardToLaunchLineAndAlign(0.75) ;
+    
   }
 
   private void targetZoneC() {
-      
-      while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
-      
-        strafeRightPower(1);
-
-      }
-      
-      stopAllWheelsPower();
-      
-
-      moveBackwardIMU(0.5);
     
-      
-      stopAllWheelsPower();
-      
-      moveBackwardPower(1);
-      sleep(2500);
-      
-      stopAllWheelsPower();
-      
-      waffle1.setPosition(1);
-      waffle2.setPosition(-1);
-      sleep(1000);
-      
-      wafflemotor.setPower(1);
-      sleep(1500);
-      
-      wafflemotor.setPower(0);
-      
-      waffle1.setPosition(-1);
-      waffle2.setPosition(1);
-      sleep(1000);
-      
-      waffle1.setPosition(0.5);
-      waffle2.setPosition(0.5);
-      
-
+    // moveBackward until distanceBack is less than 10 inches  
+    moveBackwardPower(0.75) ;
+    while (distanceBack.getDistance(DistanceUnit.INCH) > 10) {
+      // it might be off so adjust if required 
+      // may want to check for blue line 
+      ; 
+    }
+    stopAllWheelsPower();
+    
+    strafeLeftPower(1.0) ;
+    sleep(1500);
+    stopAllWheelsPower();
+    
+    
+    // drop the wabble goal 
+    dropWaffleGoal();
+    // strafe left to clear off the waffle 
+    strafeLeftPower(1.0) ;
+    sleep(500) ;
+    stopAllWheelsPower();
+    
+    // turn 180 degrees 
+    // Better to turn now rather than later 
+    rotate(180,1.0) ;
+    
+    // move back to the LaunchLine and align 
+    // dont use distance sensor this time 
+    moveBackwardToLaunchLineAndAlign(0.75) ;
   }
 
-  private void testColorSensorRun() {
+  private void testRightColorSensorRun() {
     int redval = 0 ;
     int greenval = 0 ;
     int blueval = 0 ; 
@@ -871,22 +995,22 @@ public class VLTestAutonomous extends LinearOpMode {
     //startTime = rtime.milliseconds() ; 
     startTime = System.currentTimeMillis() ; 
 
-    redval = launchLine.red() ;
-    greenval = launchLine.green() ;
-    blueval = launchLine.blue() ; 
-    alphaval = launchLine.alpha() ;
+    redval = launchLineRight.red() ;
+    greenval = launchLineRight.green() ;
+    blueval = launchLineRight.blue() ; 
+    alphaval = launchLineRight.alpha() ;
     telemetry.addData("Color Sensor Start", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
 
-    moveBackwardPower(1.0);    
+    moveBackwardPower(0.75);    
     
     while ((System.currentTimeMillis() - startTime) < 4000) {
       //telemetry.addData("distanceRight", " " + distanceRight.getDistance(DistanceUnit.INCH) + "in.");
       //telemetry.addData("distanceLeft", " " + distanceLeft.getDistance(DistanceUnit.INCH) + "in.");
       //telemetry.addData("distanceBack", " " + distanceBack.getDistance(DistanceUnit.INCH) + "in.");
-      int tempredval = launchLine.red() ;
-      int tempgreenval = launchLine.green() ;
-      int tempblueval = launchLine.blue() ;
-      int tempalphaval = launchLine.alpha() ;
+      int tempredval = launchLineRight.red() ;
+      int tempgreenval = launchLineRight.green() ;
+      int tempblueval = launchLineRight.blue() ;
+      int tempalphaval = launchLineRight.alpha() ;
       int tempval = tempredval + tempgreenval + tempblueval ; 
       if (tempval > combval) {
         redval = tempredval ; 
@@ -911,7 +1035,73 @@ public class VLTestAutonomous extends LinearOpMode {
     telemetry.update() ;
     stopAllWheelsPower();
     
-    sleep(10000) ; // sleep for sometime so you can see the values
+  }
+  
+  private void testLeftColorSensorRun() {
+    int redval = 0 ;
+    int greenval = 0 ;
+    int blueval = 0 ; 
+    int combval = 0;
+    int alphaval = 0 ;
+    //double startTime = 0; 
+    //double curTime = 0; 
+    long startTime = 0; 
+    
+    //startTime = rtime.milliseconds() ; 
+    startTime = System.currentTimeMillis() ; 
+
+    redval = launchLineLeft.red() ;
+    greenval = launchLineLeft.green() ;
+    blueval = launchLineLeft.blue() ; 
+    alphaval = launchLineLeft.alpha() ;
+    telemetry.addData("Color Sensor Start", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
+
+    moveBackwardPower(0.75);    
+    
+    while ((System.currentTimeMillis() - startTime) < 4000) {
+      //telemetry.addData("distanceRight", " " + distanceRight.getDistance(DistanceUnit.INCH) + "in.");
+      //telemetry.addData("distanceLeft", " " + distanceLeft.getDistance(DistanceUnit.INCH) + "in.");
+      //telemetry.addData("distanceBack", " " + distanceBack.getDistance(DistanceUnit.INCH) + "in.");
+      int tempredval = launchLineRight.red() ;
+      int tempgreenval = launchLineRight.green() ;
+      int tempblueval = launchLineRight.blue() ;
+      int tempalphaval = launchLineRight.alpha() ;
+      int tempval = tempredval + tempgreenval + tempblueval ; 
+      if (tempval > combval) {
+        redval = tempredval ; 
+        greenval = tempgreenval ; 
+        blueval = tempblueval ; 
+        alphaval = tempalphaval ; 
+        combval = tempval ; 
+        
+      }
+      /*
+      if (tempalphaval > 1000) {
+        redval = tempredval ; 
+        greenval = tempgreenval ; 
+        blueval = tempblueval ; 
+        alphaval = tempalphaval ; 
+        combval = tempval ; 
+        break ;
+      }
+      */
+    }
+    telemetry.addData("Color Sensor End", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
+    telemetry.update() ;
+    stopAllWheelsPower();
+    
+  }
+  
+  private void testStrafing(double plevel) {
+    strafeRightPower(1.0) ;
+    sleep(3000);
+    stopAllWheelsPower();
+    sleep(1000);
+    
+    strafeLeftPower(1.0) ;
+    sleep(3000);
+    stopAllWheelsPower();
+    sleep(1000);
   }
 
 } // end of VLTestAutonomous ClassNotFoundException
