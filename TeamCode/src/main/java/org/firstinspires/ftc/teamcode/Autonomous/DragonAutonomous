@@ -118,8 +118,7 @@ public class VLTestAutonomous extends LinearOpMode {
       stopAllWheelsPower();
       
       moveBackwardToLaunchLineAndAlign(0.75) ;
-      sleep(1000);
-      
+
       if (final_zone == AZONE) {
         targetZoneA();
       } else {
@@ -149,6 +148,9 @@ public class VLTestAutonomous extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
+     
+     shootPowerShots();
+     
     //testRightColorSensorRun() ;
     //moveBackwardToLaunchLineAndAlign(0.75) ; 
     //testRightColorSensorRun() ;
@@ -193,7 +195,7 @@ public class VLTestAutonomous extends LinearOpMode {
       shooter2 = hardwareMap.dcMotor.get("shooter2");
       conveyor = hardwareMap.dcMotor.get("intake");
       noodle = hardwareMap.get(CRServo.class, "intakemotor");
-      //liftgate = hardwareMap.servo.get("liftgate");
+      liftgate = hardwareMap.servo.get("liftgate");
       
       // hardware map for wobble/waffle 
       wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
@@ -224,6 +226,13 @@ public class VLTestAutonomous extends LinearOpMode {
       // initial position of the servos 
       // Note that this will cause the waffle goal grabbers to close 
       // and will start consuming power
+      
+      //wafflemotor.setPower(-1);
+      //sleep(1500);
+      //wafflemotor.setPower(0);
+      
+      //sleep(5000);
+      
       waffle1.setPosition(1);
       waffle2.setPosition(-1);
       //liftgate.setPosition(1);
@@ -399,8 +408,6 @@ public class VLTestAutonomous extends LinearOpMode {
     // turn the motors off.
     stopAllWheelsPower();
     
-    // wait for rotation to stop.
-    sleep(1000);
 
     // reset angle tracking on new heading.
     resetAngle();
@@ -477,8 +484,7 @@ public class VLTestAutonomous extends LinearOpMode {
     } // end of while number of tries 
     
     stopAllWheelsPower();
-    sleep(200);
-      
+
     
     telemetry.addData("AZone ", azone_successes + " " + azone_confidence);
     telemetry.addData("BZone ", bzone_successes + " " + bzone_confidence);
@@ -863,7 +869,7 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void runShooter(double power) {
 
-      shooter1.setPower(power * -1.0);
+      shooter1.setPower(power);
       shooter2.setPower(power);
 
   }
@@ -901,12 +907,8 @@ public class VLTestAutonomous extends LinearOpMode {
       // Open the grips 
       waffle1.setPosition(-1);
       waffle2.setPosition(1);
-      sleep(1000);
+      
 
-      // then release the grips
-      // do we really need to do this? It might take up continuous power       
-      waffle1.setPosition(0.5);
-      waffle2.setPosition(0.5);
   }
   
 
@@ -915,10 +917,16 @@ public class VLTestAutonomous extends LinearOpMode {
     // drop the wobble goal.
     dropWaffleGoal();
     
+    // strafe left to clear off the waffle 
+    strafeLeftPower(1.0) ;
+    sleep(500) ;
+    stopAllWheelsPower();
+    
     // turn 180 degrees 
     rotate(180,1.0) ;
     
     // make sure that the robot is back on the white line 
+    moveBackwardToLaunchLineAndAlign(0.75) ;
 
   }
 
@@ -931,7 +939,7 @@ public class VLTestAutonomous extends LinearOpMode {
     
     // strafe left for 2 seconds 
     strafeLeftPower(1.0) ;
-    sleep(3000) ;
+    sleep(2500) ;
     stopAllWheelsPower();
     // drop the wabble goal 
     dropWaffleGoal();
@@ -962,7 +970,7 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
     
     strafeLeftPower(1.0) ;
-    sleep(1500);
+    sleep(1250);
     stopAllWheelsPower();
     
     
@@ -1102,6 +1110,16 @@ public class VLTestAutonomous extends LinearOpMode {
     sleep(3000);
     stopAllWheelsPower();
     sleep(1000);
+  }
+  
+  private void shootPowerShots() {
+    
+    runShooter(1);
+    sleep(3000);
+    
+    runInclinedPlane(1);
+    
+    
   }
 
 } // end of VLTestAutonomous ClassNotFoundException
