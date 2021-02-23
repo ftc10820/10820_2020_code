@@ -233,8 +233,8 @@ public class VLTestAutonomous extends LinearOpMode {
       
       //sleep(5000);
       
-      waffle1.setPosition(1);
-      waffle2.setPosition(-1);
+      //waffle1.setPosition(1);
+      //waffle2.setPosition(-1);
       //liftgate.setPosition(1);
 
       //zero power behavior of the different motors
@@ -868,17 +868,13 @@ public class VLTestAutonomous extends LinearOpMode {
   }
 
   private void runShooter(double power) {
-
-      shooter1.setPower(power);
-      shooter2.setPower(power);
-
+    shooter1.setPower(power);
+    shooter2.setPower(power);
   }
   
   private void stopShooter() {
-
-      shooter1.setPower(0.0);
-      shooter2.setPower(0.0);
-
+    shooter1.setPower(0.0);
+    shooter2.setPower(0.0);
   }
 
   private void runInclinedPlane(double power) {
@@ -1114,11 +1110,39 @@ public class VLTestAutonomous extends LinearOpMode {
   
   private void shootPowerShots() {
     
-    runShooter(1);
+    runShooter(1.0);
     sleep(3000);
     
-    runInclinedPlane(1);
+    runInclinedPlane(1.0);
     
+    sleep(3000);
+    // assuming that the first ring is shot within 2 seconds
+    // might need to use a sensor to check when the first one is being shot 
+
+    //  turn slightly for the second sensor   
+    driveFL.setPower(1.0);
+    driveBL.setPower(1.0);
+    driveFR.setPower(0.0);
+    driveBR.setPower(0.0);
+    sleep (500) ;
+    stopAllWheelsPower();
+    
+    // wait for the second one to be shot 
+    sleep (2000) ;
+    
+    //  turn slightly for the third sensor   
+    driveFL.setPower(0.75);
+    driveBL.setPower(0.75);
+    driveFR.setPower(0.0);
+    driveBR.setPower(0.0);
+    sleep (500) ;
+    stopAllWheelsPower();
+    
+    // wait for the third one to be shot 
+    sleep (2000) ;
+    
+    stopInclinedPlane();
+    stopShooter();
     
   }
 
