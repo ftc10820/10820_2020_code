@@ -65,7 +65,8 @@ public class VLTestAutonomous extends LinearOpMode {
   private DistanceSensor distanceFront;
   private DistanceSensor distanceRight;
   private DistanceSensor distanceBack;
-
+  private DistanceSensor shooterDistance;
+  
   // variables for Vuforia and the zone detection 
   private VuforiaCurrentGame vuforiaUltimateGoal;
   private TfodCurrentGame tfodUltimateGoal;
@@ -98,7 +99,10 @@ public class VLTestAutonomous extends LinearOpMode {
     waitForStart();
 
     if (opModeIsActive()) {
+        
+       
 
+        
       detectZone() ; // determine number of rings and the zone for dropoff       
       
       // Irrespective of the zone, the first action is to get to the 
@@ -130,6 +134,8 @@ public class VLTestAutonomous extends LinearOpMode {
       }
       
       // strafe along the LaunchLine till we reach the shooting location
+      
+      
       // shoot all 3 power shots, moving for each one  
       // Ensure that the robot is back on the launchLine
         
@@ -149,7 +155,7 @@ public class VLTestAutonomous extends LinearOpMode {
      this is run before the start is pressed and helpful for debugging
      */
      
-     shootPowerShots();
+      shootPowerShots();
      
     //testRightColorSensorRun() ;
     //moveBackwardToLaunchLineAndAlign(0.75) ; 
@@ -209,6 +215,7 @@ public class VLTestAutonomous extends LinearOpMode {
       distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
       distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
       distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
+      shooterDistance = hardwareMap.get(DistanceSensor.class, "shooterDistance");
       
       //directions for the differnet motors 
       driveBR.setDirection(DcMotor.Direction.REVERSE);
@@ -1114,10 +1121,14 @@ public class VLTestAutonomous extends LinearOpMode {
     sleep(3000);
     
     runInclinedPlane(1.0);
-    
-    sleep(3000);
-    // assuming that the first ring is shot within 2 seconds
+        // assuming that the first ring is shot within 2 seconds
     // might need to use a sensor to check when the first one is being shot 
+    
+    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
+                
+        
+    }
+    
 
     //  turn slightly for the second sensor   
     driveFL.setPower(1.0);
@@ -1127,8 +1138,13 @@ public class VLTestAutonomous extends LinearOpMode {
     sleep (500) ;
     stopAllWheelsPower();
     
-    // wait for the second one to be shot 
-    sleep (2000) ;
+    
+    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
+                
+  
+    }
+    
+    
     
     //  turn slightly for the third sensor   
     driveFL.setPower(0.75);
@@ -1138,8 +1154,12 @@ public class VLTestAutonomous extends LinearOpMode {
     sleep (500) ;
     stopAllWheelsPower();
     
-    // wait for the third one to be shot 
-    sleep (2000) ;
+    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
+                
+        
+    }
+    
+
     
     stopInclinedPlane();
     stopShooter();
