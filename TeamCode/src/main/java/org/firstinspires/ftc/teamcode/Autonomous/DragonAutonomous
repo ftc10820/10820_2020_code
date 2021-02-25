@@ -42,8 +42,8 @@ public class VLTestAutonomous extends LinearOpMode {
   private DcMotorEx driveFL; // Front Left drive motor
 
   // The two shooter motors   
-  private DcMotor shooter1; // the slower core hex motor 
-  private DcMotor shooter2; // the faster ultra planetary gear motor 
+  private DcMotorEx shooter1; // the faster ultra planetary gear motor
+  private DcMotorEx shooter2; // the slower core hex motor 
   
   // motors and servo for the conveyor belt and the noodles intake  
   private DcMotor conveyor;     // motor that runs the conveyor/inclined plane 
@@ -89,6 +89,8 @@ public class VLTestAutonomous extends LinearOpMode {
 
     initializeRobot(); // intialize the complete robot including camera, imu, etc.
     
+    //setupWabbleGoal() ; // set up the wabble goal position
+    
     runTestCode() ;  // run any test code if required 
     sleep(1000) ;
     
@@ -99,9 +101,6 @@ public class VLTestAutonomous extends LinearOpMode {
     waitForStart();
 
     if (opModeIsActive()) {
-        
-       
-
         
       detectZone() ; // determine number of rings and the zone for dropoff       
       
@@ -133,10 +132,13 @@ public class VLTestAutonomous extends LinearOpMode {
         }
       }
       
+      // sleep a bit so things settle down a bit 
       // strafe along the LaunchLine till we reach the shooting location
-      
-      
+      strafeRightToShootingPositionOnLaunchLine() ;
+      sleep(1000); 
       // shoot all 3 power shots, moving for each one  
+      shootPowerShots();
+      
       // Ensure that the robot is back on the launchLine
         
     } // end of if Opmode is active 
@@ -154,9 +156,38 @@ public class VLTestAutonomous extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
-     
-      shootPowerShots();
-     
+     shootPowerShots() ;
+     //testShooter1velocity() ;
+     //testNoodleIntake();
+    //strafeRightToShootingPositionOnLaunchLine() ;
+    /* 
+    runShooter(1.0);
+    sleep(3000);
+    
+    runInclinedPlane(1.0);
+    // assuming that the first ring is shot within 2 seconds
+    // might need to use a sensor to check when the first one is being shot 
+    shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    sleep(2000) ;
+    double  sh_vel = 0.0 ; 
+    sh_vel = shooter1.getVelocity() ;
+
+    while (sh_vel > 2000) {
+      sh_vel = shooter1.getVelocity() ;
+    }
+    
+    telemetry.addData("Shooter1 velocity End", " " + sh_vel) ;
+    telemetry.update() ;
+    sleep(5000) ;
+    
+    stopInclinedPlane();
+    stopShooter();
+    */
+     /*
+    wafflemotor.setPower(-1);
+    sleep(500);
+    wafflemotor.setPower(0);
+    */
     //testRightColorSensorRun() ;
     //moveBackwardToLaunchLineAndAlign(0.75) ; 
     //testRightColorSensorRun() ;
@@ -184,6 +215,20 @@ public class VLTestAutonomous extends LinearOpMode {
     return ;
   }
   
+  private void setupWabbleGoal() {
+    // initial position of the servos 
+    // Note that this will cause the waffle goal grabbers to close 
+    // and will start consuming power
+    wafflemotor.setPower(-1);
+    sleep(1500);
+    wafflemotor.setPower(0);
+    
+    sleep(5000);
+    
+    waffle1.setPosition(1);
+    waffle2.setPosition(-1);
+    //liftgate.setPosition(1);
+  }
 
   private void initializeRobot() {
     
@@ -197,8 +242,8 @@ public class VLTestAutonomous extends LinearOpMode {
       driveBL = hardwareMap.get(DcMotorEx.class, "drive4");
       
       // hardware map for shooter, intake and conveyor 
-      shooter1 = hardwareMap.dcMotor.get("shooter1");
-      shooter2 = hardwareMap.dcMotor.get("shooter2");
+      shooter1 = hardwareMap.get(DcMotorEx.class, "shooter1");
+      shooter2 = hardwareMap.get(DcMotorEx.class, "shooter2");
       conveyor = hardwareMap.dcMotor.get("intake");
       noodle = hardwareMap.get(CRServo.class, "intakemotor");
       liftgate = hardwareMap.servo.get("liftgate");
@@ -230,20 +275,7 @@ public class VLTestAutonomous extends LinearOpMode {
       shooter2.setDirection(DcMotor.Direction.REVERSE);
       wafflemotor.setDirection(DcMotor.Direction.FORWARD);
 
-      // initial position of the servos 
-      // Note that this will cause the waffle goal grabbers to close 
-      // and will start consuming power
       
-      //wafflemotor.setPower(-1);
-      //sleep(1500);
-      //wafflemotor.setPower(0);
-      
-      //sleep(5000);
-      
-      //waffle1.setPosition(1);
-      //waffle2.setPosition(-1);
-      //liftgate.setPosition(1);
-
       //zero power behavior of the different motors
       driveBL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
       driveFL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -256,6 +288,10 @@ public class VLTestAutonomous extends LinearOpMode {
       driveBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
       driveFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+      // set shooter1 and shooter2 to use the encoder 
+      shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER) ;
+      shooter2.setMode(DcMotor.RunMode.RUN_USING_ENCODER) ;
+      
       initializeIMU();
       
       telemetry.addData("Status", "Initialized");
@@ -599,7 +635,7 @@ public class VLTestAutonomous extends LinearOpMode {
 
     driveBL.setPower((power - correction));
     driveFL.setPower((power - correction) * -1.0);
-    driveBR.setPower((power + correction) * -1);
+    driveBR.setPower((power + correction) * -1.0);
     driveFR.setPower((power + correction));
 
   }
@@ -992,7 +1028,93 @@ public class VLTestAutonomous extends LinearOpMode {
     // dont use distance sensor this time 
     moveBackwardToLaunchLineAndAlign(0.75) ;
   }
+  
+  private void strafeRightToShootingPositionOnLaunchLine() {
+  
+    // Assumption is that the robot is already on the LauchLine 
+    
+    // Use the right strafing method
+    
+    strafeRightVelocity(400.0) ;
+    
+    while(distanceRight.getDistance(DistanceUnit.INCH) > 30) {
+      // check for the color sensors and ensure that they are on the LaunchLine
+      ;
+    }
+    
+    stopAllWheelsPower();
+    
+  }
 
+  private void shootPowerShots() {
+    
+    runShooter(0.8);
+    sleep(3000);
+    
+    runInclinedPlane(1);
+    
+    shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    double  sh_vel = 0.0 ;
+    double cur_vel = 0.0 ;
+    sh_vel = shooter1.getVelocity() ;
+    
+    //telemetry.addData("Shooter velocity 1", " " + sh_vel) ;
+
+    cur_vel = sh_vel ;
+    while (cur_vel > 2000) {
+      cur_vel = shooter1.getVelocity() ;
+    }
+    sh_vel = cur_vel ; 
+    //telemetry.addData("Shooter velocity 2", " " + sh_vel) ;
+    
+    // Allow it time to shoot.. how much? 
+    //sleep(500) ;
+    
+    //  turn slightly for the second powershot    
+    driveFL.setPower(1.0);
+    driveBL.setPower(1.0);
+    driveFR.setPower(-1.0);
+    driveBR.setPower(-1.0);
+    sleep (250) ;
+    stopAllWheelsPower();
+    
+    sh_vel = shooter1.getVelocity() ;
+    //telemetry.addData("Shooter velocity 3", " " + sh_vel) ;
+    cur_vel = sh_vel ;
+    while (cur_vel > 2000) {
+      cur_vel = shooter1.getVelocity() ;
+    }
+    sh_vel = cur_vel ; 
+    //telemetry.addData("Shooter velocity 4", " " + sh_vel) ;
+    
+    // Allow it time to shoot
+    sleep(1000) ;
+    
+    //  turn slightly for the third powershot   
+    driveFL.setPower(1.0);
+    driveBL.setPower(1.0);
+    driveFR.setPower(-1.0);
+    driveBR.setPower(-1.0);
+    sleep (500) ;
+    stopAllWheelsPower();
+    
+    sh_vel = shooter1.getVelocity() ;
+    //telemetry.addData("Shooter velocity 5", " " + sh_vel) ;
+    cur_vel = sh_vel ;
+    while (cur_vel > 2000) {
+      cur_vel = shooter1.getVelocity() ;
+    }
+    sh_vel = cur_vel ; 
+    //telemetry.addData("Shooter velocity 6", " " + sh_vel) ;
+    
+    // Allow it time to shoot
+    sleep(5000) ;
+    
+    stopInclinedPlane();
+    stopShooter();
+    
+  }
+  
   private void testRightColorSensorRun() {
     int redval = 0 ;
     int greenval = 0 ;
@@ -1047,7 +1169,14 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
     
   }
-  
+  private void testShooterDistance(){
+    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
+      runShooter(1.0);   
+      telemetry.addData("Shooter Distance", shooterDistance.getDistance(DistanceUnit.INCH));
+      telemetry.update();
+    }
+    stopShooter();
+  }
   private void testLeftColorSensorRun() {
     int redval = 0 ;
     int greenval = 0 ;
@@ -1115,55 +1244,111 @@ public class VLTestAutonomous extends LinearOpMode {
     sleep(1000);
   }
   
-  private void shootPowerShots() {
+  private void testShooter2velocity() {
     
     runShooter(1.0);
     sleep(3000);
     
     runInclinedPlane(1.0);
-        // assuming that the first ring is shot within 2 seconds
+    // assuming that the first ring is shot within 2 seconds
     // might need to use a sensor to check when the first one is being shot 
-    
-    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
-                
-        
-    }
-    
+    shooter2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    sleep(2000) ;
+    double  sh_vel = 0.0 ; 
+    sh_vel = shooter2.getVelocity() ;
 
-    //  turn slightly for the second sensor   
-    driveFL.setPower(1.0);
-    driveBL.setPower(1.0);
-    driveFR.setPower(0.0);
-    driveBR.setPower(0.0);
-    sleep (500) ;
-    stopAllWheelsPower();
+    long startTime = 0; 
+    double cur_vel = 0.0 ; 
     
-    
-    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
-                
-  
-    }
-    
-    
-    
-    //  turn slightly for the third sensor   
-    driveFL.setPower(0.75);
-    driveBL.setPower(0.75);
-    driveFR.setPower(0.0);
-    driveBR.setPower(0.0);
-    sleep (500) ;
-    stopAllWheelsPower();
-    
-    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
-                
-        
-    }
-    
+    //startTime = rtime.milliseconds() ; 
+    startTime = System.currentTimeMillis() ; 
 
+    telemetry.addData("Shooter2 velocity Start", " " + sh_vel) ;
+    
+    cur_vel = sh_vel ; 
+
+    while ((System.currentTimeMillis() - startTime) < 4000) {
+      // find out how the velocity reduces 
+      sh_vel = shooter2.getVelocity() ;
+      if (sh_vel < cur_vel) {
+        cur_vel = sh_vel ; 
+      }
+    }
+    
+    /*
+    while (sh_vel > 400) {
+      sh_vel = shooter2.getVelocity() ;
+    }
+    */
+    
+    telemetry.addData("Shooter2 velocity End", " " + cur_vel) ;
+    telemetry.update() ;
     
     stopInclinedPlane();
     stopShooter();
     
+    sleep(5000) ;
   }
 
+  private void testShooter1velocity() {
+    
+    runShooter(1.0);
+    sleep(3000);
+    
+    runInclinedPlane(1.0);
+    // assuming that the first ring is shot within 2 seconds
+    // might need to use a sensor to check when the first one is being shot 
+    shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    sleep(2000) ;
+    double  sh_vel = 0.0 ; 
+    sh_vel = shooter1.getVelocity() ;
+
+    long startTime = 0; 
+    double cur_vel = 0.0 ; 
+    
+    //startTime = rtime.milliseconds() ; 
+    startTime = System.currentTimeMillis() ; 
+
+    telemetry.addData("Shooter1 velocity Start", " " + sh_vel) ;
+    
+    cur_vel = sh_vel ; 
+
+    while ((System.currentTimeMillis() - startTime) < 8000) {
+      // find out how the velocity reduces 
+      sh_vel = shooter1.getVelocity() ;
+      if (sh_vel < cur_vel) {
+        cur_vel = sh_vel ; 
+      }
+    }
+    
+    /*
+    while (sh_vel > 400) {
+      sh_vel = shooter2.getVelocity() ;
+    }
+    */
+    
+    telemetry.addData("Shooter1 velocity End", " " + cur_vel) ;
+    telemetry.update() ;
+    
+    stopInclinedPlane();
+    stopShooter();
+    
+    sleep(5000) ;
+  }
+  
+  private void testNoodleIntake() {
+    runInclinedPlane(1.0);
+    sleep(1000) ;
+    runNoodleIntake(1.0) ;
+    sleep(1000) ;
+    
+    moveBackwardPower(1.0) ;
+    sleep(5000) ;
+   
+    stopAllWheelsPower();
+         
+    stopNoodleIntake();
+    stopInclinedPlane();
+  }
+  
 } // end of VLTestAutonomous ClassNotFoundException
