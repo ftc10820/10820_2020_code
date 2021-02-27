@@ -89,7 +89,7 @@ public class VLTestAutonomous extends LinearOpMode {
 
     initializeRobot(); // intialize the complete robot including camera, imu, etc.
     
-    //setupWabbleGoal() ; // set up the wabble goal position
+    setupWabbleGoal() ; // set up the wabble goal position
     
     runTestCode() ;  // run any test code if required 
     sleep(1000) ;
@@ -113,12 +113,13 @@ public class VLTestAutonomous extends LinearOpMode {
       strafeRightPower(1.0) ;
       while(distanceRight.getDistance(DistanceUnit.INCH) > 15.0) {
       }
+      
       driveFR.setPower(-1.0);
       driveBR.setPower(-1.0);
       driveFL.setPower(0.0);
       driveBL.setPower(0.0);
-      sleep(200);
-      stopAllWheelsPower();
+      sleep(100);
+      //stopAllWheelsPower();
       
       moveBackwardToLaunchLineAndAlign(0.75) ;
 
@@ -135,7 +136,7 @@ public class VLTestAutonomous extends LinearOpMode {
       // sleep a bit so things settle down a bit 
       // strafe along the LaunchLine till we reach the shooting location
       strafeRightToShootingPositionOnLaunchLine() ;
-      sleep(1000); 
+      //sleep(1000); 
       // shoot all 3 power shots, moving for each one  
       shootPowerShots();
       
@@ -156,7 +157,7 @@ public class VLTestAutonomous extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
-     shootPowerShots() ;
+     //shootPowerShots() ;
      //testShooter1velocity() ;
      //testNoodleIntake();
     //strafeRightToShootingPositionOnLaunchLine() ;
@@ -1032,6 +1033,8 @@ public class VLTestAutonomous extends LinearOpMode {
   private void strafeRightToShootingPositionOnLaunchLine() {
   
     // Assumption is that the robot is already on the LauchLine 
+    runShooter(1.0);
+    //sleep(3000);
     
     // Use the right strafing method
     
@@ -1048,27 +1051,30 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void shootPowerShots() {
     
+    // moved the shooter to earlier
+    /*
     runShooter(0.8);
     sleep(3000);
-    
+    */
     runInclinedPlane(1);
     
     shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     double  sh_vel = 0.0 ;
     double cur_vel = 0.0 ;
+    double target_vel = 0.0 ;
     sh_vel = shooter1.getVelocity() ;
     
+    target_vel = sh_vel - 100 ;
     //telemetry.addData("Shooter velocity 1", " " + sh_vel) ;
-
     cur_vel = sh_vel ;
-    while (cur_vel > 2000) {
+    while (cur_vel > target_vel) {
       cur_vel = shooter1.getVelocity() ;
     }
     sh_vel = cur_vel ; 
     //telemetry.addData("Shooter velocity 2", " " + sh_vel) ;
     
     // Allow it time to shoot.. how much? 
-    //sleep(500) ;
+    sleep(500) ;
     
     //  turn slightly for the second powershot    
     driveFL.setPower(1.0);
@@ -1079,16 +1085,17 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
     
     sh_vel = shooter1.getVelocity() ;
+    target_vel = sh_vel - 100 ;
     //telemetry.addData("Shooter velocity 3", " " + sh_vel) ;
     cur_vel = sh_vel ;
-    while (cur_vel > 2000) {
+    while (cur_vel > target_vel) {
       cur_vel = shooter1.getVelocity() ;
     }
     sh_vel = cur_vel ; 
     //telemetry.addData("Shooter velocity 4", " " + sh_vel) ;
     
     // Allow it time to shoot
-    sleep(1000) ;
+    sleep(500) ;
     
     //  turn slightly for the third powershot   
     driveFL.setPower(1.0);
@@ -1099,16 +1106,17 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
     
     sh_vel = shooter1.getVelocity() ;
+    target_vel = sh_vel - 100 ;
     //telemetry.addData("Shooter velocity 5", " " + sh_vel) ;
     cur_vel = sh_vel ;
-    while (cur_vel > 2000) {
+    while (cur_vel > target_vel) {
       cur_vel = shooter1.getVelocity() ;
     }
     sh_vel = cur_vel ; 
     //telemetry.addData("Shooter velocity 6", " " + sh_vel) ;
     
     // Allow it time to shoot
-    sleep(5000) ;
+    sleep(2000) ;
     
     stopInclinedPlane();
     stopShooter();
