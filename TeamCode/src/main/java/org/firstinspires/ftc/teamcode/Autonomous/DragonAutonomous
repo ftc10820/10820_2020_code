@@ -30,7 +30,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 
 @Autonomous
-public class VLTestAutonomous extends LinearOpMode {
+
+public class UltimateGoalAutonomousFinal extends LinearOpMode {
+
 
   // The orientation/position is based on a view of a person looking at
   // the robot from the top, shooter at front, intake at back
@@ -43,14 +45,14 @@ public class VLTestAutonomous extends LinearOpMode {
 
   // The two shooter motors   
   private DcMotorEx shooter1; // the faster ultra planetary gear motor
-  private DcMotorEx shooter2; // the slower core hex motor 
-  
+
   // motors and servo for the conveyor belt and the noodles intake  
   private DcMotor conveyor;     // motor that runs the conveyor/inclined plane 
-  private CRServo noodle;       // servo that runs the noodle intake mechanism
+  private DcMotor noodle;       // servo that runs the noodle intake mechanism
                                 // Note that this is a servo and not a motor 
                                 
-  private Servo liftgate;       // servo for gate on the conveyor  
+  private Servo liftgate1; // servo for gate on the conveyor  
+  private Servo liftgate2;
   
   
   // motor and servo for the wobble/waffle 
@@ -65,8 +67,7 @@ public class VLTestAutonomous extends LinearOpMode {
   private DistanceSensor distanceFront;
   private DistanceSensor distanceRight;
   private DistanceSensor distanceBack;
-  private DistanceSensor shooterDistance;
-  
+
   // variables for Vuforia and the zone detection 
   private VuforiaCurrentGame vuforiaUltimateGoal;
   private TfodCurrentGame tfodUltimateGoal;
@@ -80,7 +81,9 @@ public class VLTestAutonomous extends LinearOpMode {
   Orientation             lastAngles = new Orientation();
   double                  globalAngle, power = .30, correction;
 
-  
+  // 
+  long autoStartTime = 0 ; 
+
   /**
    * This function is executed when this Op Mode is selected from the Driver Station.
    */
@@ -89,7 +92,7 @@ public class VLTestAutonomous extends LinearOpMode {
 
     initializeRobot(); // intialize the complete robot including camera, imu, etc.
     
-    setupWabbleGoal() ; // set up the wabble goal position
+    //setupWabbleGoal() ; // set up the wabble goal position
     
     runTestCode() ;  // run any test code if required 
     sleep(1000) ;
@@ -100,6 +103,9 @@ public class VLTestAutonomous extends LinearOpMode {
     // Wait for start command from Driver Station.
     waitForStart();
 
+    // use the start
+    autoStartTime = System.currentTimeMillis() ;
+    
     if (opModeIsActive()) {
         
       detectZone() ; // determine number of rings and the zone for dropoff       
@@ -114,14 +120,16 @@ public class VLTestAutonomous extends LinearOpMode {
       while(distanceRight.getDistance(DistanceUnit.INCH) > 15.0) {
       }
       
+      // Adjust manually
       driveFR.setPower(-1.0);
       driveBR.setPower(-1.0);
       driveFL.setPower(0.0);
       driveBL.setPower(0.0);
-      sleep(100);
+      sleep(150);
+      
       //stopAllWheelsPower();
       
-      moveBackwardToLaunchLineAndAlign(0.75) ;
+      moveBackwardToLaunchLineWithoutAlign(1.0) ;
 
       if (final_zone == AZONE) {
         targetZoneA();
@@ -135,10 +143,12 @@ public class VLTestAutonomous extends LinearOpMode {
       
       // sleep a bit so things settle down a bit 
       // strafe along the LaunchLine till we reach the shooting location
-      strafeRightToShootingPositionOnLaunchLine() ;
+      //strafeRightToShootingPositionOnLaunchLine() ;
+      strafeToShootingPositionForHighGoal() ;
       //sleep(1000); 
       // shoot all 3 power shots, moving for each one  
-      shootPowerShots();
+      //shootPowerShots();
+      shootHighGoal();
       
       // Ensure that the robot is back on the launchLine
         
@@ -157,9 +167,77 @@ public class VLTestAutonomous extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
+     
+     //shootRingsFromStart(1.0);
+     testShooter1velocity();
+     
+     /*
+     runInclinedPlane(1.0);
+     liftgate2.setPosition(1); 
+     liftgate1.setPosition(1);
+     sleep(10000);
+     liftgate2.setPosition(0.5);
+     liftgate1.setPosition(0.5);
+     stopInclinedPlane();
+     */
+     /*
+     shooter1.setPower(0.9);
+     sleep(2000);
+     conveyor.setPower(1);
+     sleep(20000);
+     shooter1.setPower(0);
+     conveyor.setPower(0);
+     */
+     
+     /*
+     conveyor.setPower(1.0) ;
+     noodle.setPower(1.0) ;
+     sleep(30000) ;
+     noodle.setPower(0.0) ;
+     conveyor.setPower(0) ;
+     */
+     /*
+     driveBL.setPower(1);
+     sleep(3000);
+     stopAllWheelsPower();
+     
+     driveFL.setPower(1);
+     sleep(3000);
+     stopAllWheelsPower();
+     
+     driveBR.setPower(1);
+     sleep(3000);
+     stopAllWheelsPower();
+     
+     driveFR.setPower(1);
+     sleep(3000);
+     stopAllWheelsPower();
+     */
+     
+     /*
+     strafeRightPower(1.0);
+     sleep(4000);
+     stopAllWheelsPower();
+     
+     sleep(100);
+     
+     strafeLeftPower(1.0);
+     sleep(4000);
+     stopAllWheelsPower();
+     */
+     
+     
+     //testIMU();
+     //testForwardIMU() ; 
+     //testBackwardIMU() ; 
+     //testStrafeRightIMU() ; 
+     //testStrafeLeftIMU() ; 
+     
      //shootPowerShots() ;
      //testShooter1velocity() ;
-     //testNoodleIntake();
+     //runNoodleIntake(1.0);
+     //sleep(15000);
+     
     //strafeRightToShootingPositionOnLaunchLine() ;
     /* 
     runShooter(1.0);
@@ -244,11 +322,11 @@ public class VLTestAutonomous extends LinearOpMode {
       
       // hardware map for shooter, intake and conveyor 
       shooter1 = hardwareMap.get(DcMotorEx.class, "shooter1");
-      shooter2 = hardwareMap.get(DcMotorEx.class, "shooter2");
       conveyor = hardwareMap.dcMotor.get("intake");
-      noodle = hardwareMap.get(CRServo.class, "intakemotor");
-      liftgate = hardwareMap.servo.get("liftgate");
-      
+      noodle = hardwareMap.get(DcMotor.class, "intakemotor");
+      liftgate1 = hardwareMap.servo.get("liftgate1");
+      liftgate2 = hardwareMap.servo.get("liftgate2");
+    
       // hardware map for wobble/waffle 
       wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
       waffle1 = hardwareMap.servo.get("waffle1");
@@ -261,19 +339,17 @@ public class VLTestAutonomous extends LinearOpMode {
       distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
       distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
       distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
-      shooterDistance = hardwareMap.get(DistanceSensor.class, "shooterDistance");
-      
+
       //directions for the differnet motors 
       driveBR.setDirection(DcMotor.Direction.REVERSE);
-      driveFR.setDirection(DcMotor.Direction.REVERSE);
+      driveFR.setDirection(DcMotor.Direction.FORWARD);
       driveBL.setDirection(DcMotor.Direction.FORWARD);
-      driveFL.setDirection(DcMotor.Direction.FORWARD);
+      driveFL.setDirection(DcMotor.Direction.REVERSE);
       
       conveyor.setDirection(DcMotor.Direction.FORWARD); 
-      noodle.setDirection(CRServo.Direction.FORWARD);
+      noodle.setDirection(CRServo.Direction.REVERSE);
       
       shooter1.setDirection(DcMotor.Direction.FORWARD);
-      shooter2.setDirection(DcMotor.Direction.REVERSE);
       wafflemotor.setDirection(DcMotor.Direction.FORWARD);
 
       
@@ -291,9 +367,8 @@ public class VLTestAutonomous extends LinearOpMode {
 
       // set shooter1 and shooter2 to use the encoder 
       shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER) ;
-      shooter2.setMode(DcMotor.RunMode.RUN_USING_ENCODER) ;
-      
-      initializeIMU();
+
+      //initializeIMU();
       
       telemetry.addData("Status", "Initialized");
       telemetry.update();
@@ -367,7 +442,8 @@ public class VLTestAutonomous extends LinearOpMode {
   
   
   private void displayOrientationValues(Orientation orient, String name) {
-    telemetry.addData(name, "X: " + orient.firstAngle + ", Y: " + orient.secondAngle + ", Z: " + orient.thirdAngle);
+    // ensure that the order is set up correctly as specified in getAngularDistance
+    telemetry.addData(name, "Z: " + orient.firstAngle + ", Y: " + orient.secondAngle + ", X: " + orient.thirdAngle);
   }
   
   private void resetAngle() {
@@ -397,7 +473,7 @@ public class VLTestAutonomous extends LinearOpMode {
     
   private double checkDirection() {
         
-    double correction, angle, gain = .10;
+    double correction, angle, gain = .1;
 
     angle = getAngle();
 
@@ -464,6 +540,8 @@ public class VLTestAutonomous extends LinearOpMode {
     // response from the video detection. 
     // For each attempt the robot moves closer to the rings a little bit
     
+    // NOTE: Remove telemetry to save a bit of time
+    
     int nvideo_attempts = 9; // change this if required. You can change it to 1 as well
     int azone_successes = 0 ;
     float azone_confidence = 0.0F ;
@@ -477,55 +555,63 @@ public class VLTestAutonomous extends LinearOpMode {
 
     // get the robot moving and during movement it can check the detection  
     // a number of times 
+    // Check below before changing the speed to higher than 0.5
     moveBackwardPower(0.5);
     
-    while (nvideo_attempts > 0) {
-      nvideo_attempts-- ; // reduce count first so you dont forget later 
+//    while (nvideo_attempts > 0) {
+    while (distanceFront.getDistance(DistanceUnit.INCH) < 24) {
       
-      // Put loop blocks here.
-      // Get a list of recognitions from TFOD.
-      recognitions = tfodUltimateGoal.getRecognitions();
-
-      // If list is empty, inform the user. Otherwise, go
-      // through list and display info for each recognition.
-      if (recognitions.size() == 0) {
-        azone_successes++ ; 
-        azone_confidence += 0.9F ; // just giving it something nominal rather than 1.0 
-        telemetry.addData("TFOD ", "No items detected.");
-        telemetry.addData("Target Zone ", "A");
-      } else {
-        if (recognitions.size() > 1) {
-          telemetry.addData("TFOD ", "More than 1 item detected");
-        }
+      // do only the first nvideo attempts; otherwise it will get too 
+      // close to the stack and the camera will not have them in view
+      if (nvideo_attempts > 0 ) {
+        // give it some time before checking for each attempt 
+        sleep(200);
         
-        index = 0;
-        // Iterate through list and call a function to
-        // display info for each recognized object.
-        for (Recognition recognition : recognitions) {
-
-          if (recognition.getLabel().equals("Single")) {
-            telemetry.addData("Target Zone ", "B");
-            bzone_successes++ ; 
-            bzone_confidence += recognition.getConfidence() ;
-          } else if (recognition.getLabel().equals("Quad")) {
-            telemetry.addData("Target Zone ", "C");
-            czone_successes++ ; 
-            czone_confidence += recognition.getConfidence() ;
-          } else {
-            telemetry.addData("TFOD ", "Unknown label " + recognition.getLabel());
-            telemetry.addData("Target Zone ", "Unknown");
+        nvideo_attempts-- ; // reduce count first so you dont forget later 
+        
+        // Put loop blocks here.
+        // Get a list of recognitions from TFOD.
+        recognitions = tfodUltimateGoal.getRecognitions();
+  
+        // If list is empty, inform the user. Otherwise, go
+        // through list and display info for each recognition.
+        if (recognitions.size() == 0) {
+          azone_successes++ ; 
+          azone_confidence += 0.9F ; // just giving it something nominal rather than 1.0 
+          telemetry.addData("TFOD ", "No items detected.");
+          telemetry.addData("Target Zone ", "A");
+        } else {
+          if (recognitions.size() > 1) {
+            telemetry.addData("TFOD ", "More than 1 item detected");
           }
-          // Display info.
-          //displayInfo(index); Commenting this out because details are not required
-          // Increment index.
-          index = index + 1;
-        } // end of recoginition list 
-      } // end of else for recognition list empty
-      telemetry.update() ; // make sure telemetry is updated 
-      
-      // since it is moving anyways 
-      sleep(200);
-    } // end of while number of tries 
+          
+          index = 0;
+          // Iterate through list and call a function to
+          // display info for each recognized object.
+          for (Recognition recognition : recognitions) {
+  
+            if (recognition.getLabel().equals("Single")) {
+              telemetry.addData("Target Zone ", "B");
+              bzone_successes++ ; 
+              bzone_confidence += recognition.getConfidence() ;
+            } else if (recognition.getLabel().equals("Quad")) {
+              telemetry.addData("Target Zone ", "C");
+              czone_successes++ ; 
+              czone_confidence += recognition.getConfidence() ;
+            } else {
+              telemetry.addData("TFOD ", "Unknown label " + recognition.getLabel());
+              telemetry.addData("Target Zone ", "Unknown");
+            }
+            // Display info.
+            //displayInfo(index); Commenting this out because details are not required
+            // Increment index.
+            index = index + 1;
+          } // end of recoginition list 
+        } // end of else for recognition list empty
+        //telemetry.update() ; // make sure telemetry is updated 
+        
+      } // end of video attempts
+    } // exit when distance is greater than a certain value  
     
     stopAllWheelsPower();
 
@@ -625,8 +711,8 @@ public class VLTestAutonomous extends LinearOpMode {
 
     driveBL.setPower((power - correction) * -1.0);
     driveFL.setPower((power - correction) * -1.0);
-    driveBR.setPower((power + correction) * -1);
-    driveFR.setPower((power + correction) * -1);
+    driveBR.setPower((power + correction) * -1.0);
+    driveFR.setPower((power + correction) * -1.0);
 
   }
   
@@ -641,6 +727,17 @@ public class VLTestAutonomous extends LinearOpMode {
 
   }
 
+  private void strafeLeftIMU(double power) {
+    
+    correction = checkDirection();
+
+    driveBL.setPower((power + correction) * -1.0);
+    driveFL.setPower((power + correction));
+    driveBR.setPower((power - correction));
+    driveFR.setPower((power - correction) * -1.0);
+
+  }
+  
   private void strafeRightPower(double power) {
     driveBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     driveFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -831,7 +928,9 @@ public class VLTestAutonomous extends LinearOpMode {
     int colorRightAfterBreak ;
     
     // start moving back 
-    moveBackwardPower(plevel);    
+    resetAngle();
+
+    //moveBackwardPower(plevel);    
     
     // Do the while loop until the color is reached
     colorRight = launchLineRight.alpha() ;
@@ -839,6 +938,7 @@ public class VLTestAutonomous extends LinearOpMode {
     while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
       colorRight = launchLineRight.alpha() ;
       colorLeft = launchLineLeft.alpha() ;
+      moveForwardIMU(-1.0 * plevel) ; // NOTE
     }
     //stopAllWheelsPower();
     //sleep(2000);
@@ -899,6 +999,30 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
   }
 
+  private void moveBackwardToLaunchLineWithoutAlign(double plevel) {
+    
+    int minWhiteColorAlpha = 1000 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
+    int colorRightAfterBreak ;
+    
+    // start moving back 
+    resetAngle();
+
+    //moveBackwardPower(plevel);    
+    
+    // Do the while loop until the color is reached
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+      moveForwardIMU(-1.0 * plevel) ; // NOTE
+    }
+    stopAllWheelsPower();
+  }
+  
   // do we have to set the mode when switching off?  
   public boolean shouldStop() {
     return (distanceRight.getDistance(DistanceUnit.INCH) > 7);
@@ -913,12 +1037,13 @@ public class VLTestAutonomous extends LinearOpMode {
 
   private void runShooter(double power) {
     shooter1.setPower(power);
-    shooter2.setPower(power);
+  }
+  private void runLiftGate2() {
+    
   }
   
   private void stopShooter() {
     shooter1.setPower(0.0);
-    shooter2.setPower(0.0);
   }
 
   private void runInclinedPlane(double power) {
@@ -966,7 +1091,7 @@ public class VLTestAutonomous extends LinearOpMode {
     rotate(180,1.0) ;
     
     // make sure that the robot is back on the white line 
-    moveBackwardToLaunchLineAndAlign(0.75) ;
+    moveBackwardToLaunchLineAndAlign(1.0) ;
 
   }
 
@@ -979,7 +1104,7 @@ public class VLTestAutonomous extends LinearOpMode {
     
     // strafe left for 2 seconds 
     strafeLeftPower(1.0) ;
-    sleep(2500) ;
+    sleep(2000) ;
     stopAllWheelsPower();
     // drop the wabble goal 
     dropWaffleGoal();
@@ -990,29 +1115,34 @@ public class VLTestAutonomous extends LinearOpMode {
     
     // turn 180 degrees 
     // Better to turn now rather than later 
-    rotate(180,0.75) ;
+    rotate(180,1.0) ;
     
     // move back to the LaunchLine and align 
     // dont use distance sensor this time 
-    moveBackwardToLaunchLineAndAlign(0.75) ;
+    moveBackwardToLaunchLineAndAlign(1.0) ;
     
   }
 
   private void targetZoneC() {
     
+    // start moving back 
+    resetAngle();
+    //moveBackwardPower(plevel);    
+    
     // moveBackward until distanceBack is less than 10 inches  
-    moveBackwardPower(0.75) ;
+    //moveBackwardPower(0.75) ;
     while (distanceBack.getDistance(DistanceUnit.INCH) > 10) {
       // it might be off so adjust if required 
       // may want to check for blue line 
-      ; 
+      moveForwardIMU(-1.0 ) ; // NOTE
     }
     stopAllWheelsPower();
     
+    /*
     strafeLeftPower(1.0) ;
-    sleep(1250);
+    sleep(1000);
     stopAllWheelsPower();
-    
+    */
     
     // drop the wabble goal 
     dropWaffleGoal();
@@ -1027,7 +1157,7 @@ public class VLTestAutonomous extends LinearOpMode {
     
     // move back to the LaunchLine and align 
     // dont use distance sensor this time 
-    moveBackwardToLaunchLineAndAlign(0.75) ;
+    moveBackwardToLaunchLineAndAlign(1.0) ;
   }
   
   private void strafeRightToShootingPositionOnLaunchLine() {
@@ -1049,6 +1179,56 @@ public class VLTestAutonomous extends LinearOpMode {
     
   }
 
+  private void strafeToShootingPositionForHighGoal() {
+  
+    // Assumption is that the robot is already on the LauchLine 
+    runShooter(1.0);
+    //sleep(3000);
+
+    if(distanceLeft.getDistance(DistanceUnit.INCH) > 35) {
+      
+      strafeLeftVelocity(400) ;
+      while(distanceLeft.getDistance(DistanceUnit.INCH) > 35) {
+        // check for the color sensors and ensure that they are on the LaunchLine
+        ;
+      }
+
+      // move back slightly
+      moveBackwardPower(1.0) ;
+      sleep(250) ;
+      
+      // currently adjustment only for B zone 
+      if (final_zone == BZONE) {
+        driveFL.setPower(-1.0);
+        driveBL.setPower(-1.0);
+        driveFR.setPower(0.0);
+        driveBR.setPower(0.0);
+        sleep(250) ;
+      }
+      stopAllWheelsPower();
+      
+    } else {
+      
+      strafeRightVelocity(400) ;
+      while(distanceLeft.getDistance(DistanceUnit.INCH) < 35) {
+        // check for the color sensors and ensure that they are on the LaunchLine
+        ;
+      }
+      
+      // move back slightly
+      moveBackwardPower(1.0) ;
+      sleep(250) ;
+      
+      driveFL.setPower(0.0);
+      driveBL.setPower(0.0);
+      driveFR.setPower(-1.0);
+      driveBR.setPower(-1.0);
+      sleep(200) ;
+      stopAllWheelsPower();
+    }
+    
+  }
+  
   private void shootPowerShots() {
     
     // moved the shooter to earlier
@@ -1056,7 +1236,7 @@ public class VLTestAutonomous extends LinearOpMode {
     runShooter(0.8);
     sleep(3000);
     */
-    runInclinedPlane(1);
+    runInclinedPlane(1.0);
     
     shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     double  sh_vel = 0.0 ;
@@ -1123,6 +1303,30 @@ public class VLTestAutonomous extends LinearOpMode {
     
   }
   
+  private void shootHighGoal() {
+    // run inclined plane 
+    runInclinedPlane(1.0);
+    //sleep (1000) ;
+    
+    long cur_time = System.currentTimeMillis() ;
+    int noodle_state = 0 ;
+    // At 29 seconds, make sure you have enough time to get to the launch line 
+    while ((System.currentTimeMillis() - autoStartTime) < 29000) {
+      
+      if (noodle_state == 0) {
+        if ((System.currentTimeMillis() - cur_time) > 2000) {
+          noodle_state = 1 ;
+          runNoodleIntake(0.25) ;
+        }
+      }
+    }
+    
+    moveForwardPower(1.0) ;
+    sleep(500) ;
+    stopAllWheelsPower();
+    
+  }
+  
   private void testRightColorSensorRun() {
     int redval = 0 ;
     int greenval = 0 ;
@@ -1177,68 +1381,7 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
     
   }
-  private void testShooterDistance(){
-    while (shooterDistance.getDistance(DistanceUnit.INCH) > 10) {
-      runShooter(1.0);   
-      telemetry.addData("Shooter Distance", shooterDistance.getDistance(DistanceUnit.INCH));
-      telemetry.update();
-    }
-    stopShooter();
-  }
-  private void testLeftColorSensorRun() {
-    int redval = 0 ;
-    int greenval = 0 ;
-    int blueval = 0 ; 
-    int combval = 0;
-    int alphaval = 0 ;
-    //double startTime = 0; 
-    //double curTime = 0; 
-    long startTime = 0; 
-    
-    //startTime = rtime.milliseconds() ; 
-    startTime = System.currentTimeMillis() ; 
-
-    redval = launchLineLeft.red() ;
-    greenval = launchLineLeft.green() ;
-    blueval = launchLineLeft.blue() ; 
-    alphaval = launchLineLeft.alpha() ;
-    telemetry.addData("Color Sensor Start", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
-
-    moveBackwardPower(0.75);    
-    
-    while ((System.currentTimeMillis() - startTime) < 4000) {
-      //telemetry.addData("distanceRight", " " + distanceRight.getDistance(DistanceUnit.INCH) + "in.");
-      //telemetry.addData("distanceLeft", " " + distanceLeft.getDistance(DistanceUnit.INCH) + "in.");
-      //telemetry.addData("distanceBack", " " + distanceBack.getDistance(DistanceUnit.INCH) + "in.");
-      int tempredval = launchLineRight.red() ;
-      int tempgreenval = launchLineRight.green() ;
-      int tempblueval = launchLineRight.blue() ;
-      int tempalphaval = launchLineRight.alpha() ;
-      int tempval = tempredval + tempgreenval + tempblueval ; 
-      if (tempval > combval) {
-        redval = tempredval ; 
-        greenval = tempgreenval ; 
-        blueval = tempblueval ; 
-        alphaval = tempalphaval ; 
-        combval = tempval ; 
-        
-      }
-      /*
-      if (tempalphaval > 1000) {
-        redval = tempredval ; 
-        greenval = tempgreenval ; 
-        blueval = tempblueval ; 
-        alphaval = tempalphaval ; 
-        combval = tempval ; 
-        break ;
-      }
-      */
-    }
-    telemetry.addData("Color Sensor End", "red: " + redval + " green: " + greenval + " blue: " + blueval + " alpha: " + alphaval);
-    telemetry.update() ;
-    stopAllWheelsPower();
-    
-  }
+  
   
   private void testStrafing(double plevel) {
     strafeRightPower(1.0) ;
@@ -1251,6 +1394,7 @@ public class VLTestAutonomous extends LinearOpMode {
     stopAllWheelsPower();
     sleep(1000);
   }
+  /*
   
   private void testShooter2velocity() {
     
@@ -1283,11 +1427,11 @@ public class VLTestAutonomous extends LinearOpMode {
       }
     }
     
-    /*
+    
     while (sh_vel > 400) {
       sh_vel = shooter2.getVelocity() ;
     }
-    */
+    
     
     telemetry.addData("Shooter2 velocity End", " " + cur_vel) ;
     telemetry.update() ;
@@ -1297,7 +1441,8 @@ public class VLTestAutonomous extends LinearOpMode {
     
     sleep(5000) ;
   }
-
+  
+  */
   private void testShooter1velocity() {
     
     runShooter(1.0);
@@ -1359,4 +1504,117 @@ public class VLTestAutonomous extends LinearOpMode {
     stopInclinedPlane();
   }
   
-} // end of VLTestAutonomous ClassNotFoundException
+  private void testIMU() {
+    // it is assumed here the the IMU has been initialized
+    
+    // first reset and then get the angles 
+    // reset here does not mean IMU reset. just storing it inside lastAngles and 
+    // making global angles as zero 
+    
+    resetAngle();
+    
+    // display the values 
+    getAngle() ;
+    displayOrientationValues(lastAngles, "imu start") ;
+    
+    // turn the robot  and see what changes take place in the values 
+    driveFL.setPower(1.0);
+    driveBL.setPower(1.0);
+    driveFR.setPower(1.0);
+    driveBR.setPower(1.0);
+    sleep (1500) ;
+    stopAllWheelsPower();
+    
+    // let it rest for a bit
+    sleep(1000) ;
+
+    // display the values again
+    getAngle() ;
+    displayOrientationValues(lastAngles, "imu end") ;
+
+    telemetry.update() ;
+    
+    // Experimentally, we have established that the firstAngle value is the 
+    // one that changes when the robot changes direction 
+    // This is crucial.. 
+    // Check REV robotics documentation.. it seems a bit off 
+    
+    sleep(20000) ;
+  }
+  
+  private void testForwardIMU() {
+    
+    long startTime = System.currentTimeMillis() ; 
+    
+    resetAngle();
+
+    while ((System.currentTimeMillis() - startTime) < 5000) {
+      moveForwardIMU(1.0) ;
+    }
+    stopAllWheelsPower();
+    
+    sleep(5000) ;
+  }
+  
+  private void testBackwardIMU() {
+    
+    long startTime = System.currentTimeMillis() ; 
+    
+    resetAngle();
+
+    while ((System.currentTimeMillis() - startTime) < 5000) {
+      moveForwardIMU(-1.0) ; // NOTE
+    }
+    stopAllWheelsPower();
+    
+    sleep(5000) ;
+  }
+  
+  private void testStrafeRightIMU() {
+    long startTime = System.currentTimeMillis() ; 
+    
+    resetAngle();
+
+    while ((System.currentTimeMillis() - startTime) < 4000) {
+      strafeRightIMU(1.0) ;
+    }
+    stopAllWheelsPower();
+    
+    sleep(5000) ;
+    
+  }
+  
+  private void testStrafeLeftIMU() {
+    long startTime = System.currentTimeMillis() ; 
+    
+    resetAngle();
+
+    while ((System.currentTimeMillis() - startTime) < 4000) {
+      strafeRightIMU(-1.0) ;
+      //strafeLeftPower(1.0);
+    }
+    stopAllWheelsPower();
+    
+    sleep(5000) ;
+    
+  }
+  
+  private void shootRingsFromStart(double plevel){
+    runShooter(plevel);   //power should be such that it goes into the high goal
+    sleep(2000);  //warming up shooter
+    runInclinedPlane(1.0);
+    runNoodleIntake(0.5);
+
+    sleep(4000);   //waiting for the first ring to be shot out
+    liftgate2.setPosition(1); 
+    liftgate1.setPosition(1);
+    sleep(10000);
+    liftgate2.setPosition(0.5); 
+    liftgate1.setPosition(0.5);
+    stopShooter();
+    stopInclinedPlane();
+    stopNoodleIntake();
+    
+  }
+
+}
