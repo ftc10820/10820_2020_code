@@ -44,7 +44,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 @TeleOp
 
-public class DragonTest extends LinearOpMode {
+public class UltimateGoalDriverOpFinal extends LinearOpMode {
     
     //motors
     private DcMotor drive1;
@@ -53,21 +53,21 @@ public class DragonTest extends LinearOpMode {
     private DcMotor drive4;
     private DcMotor intake;
     private DcMotor shooter1;
-    private DcMotor shooter2;
     private DcMotor wafflemotor;
-    private CRServo intakemotor;
+    private DcMotor intakemotor;
 
     
     //servos
     private Servo waffle1;
     private Servo waffle2;
-    private Servo gate;
+    private Servo liftgate;
     
     //sensors
     private ColorSensor launchLine;
     private DistanceSensor distanceRight;
     private DistanceSensor distanceFront;
     private DistanceSensor distanceLeft;
+    private DistanceSensor distanceBack;
     
     @Override
     public void runOpMode() {
@@ -83,50 +83,30 @@ public class DragonTest extends LinearOpMode {
         while (opModeIsActive()) {
             
             
-            //this one works
-            //wafflemotor.setPower(gamepad1.left_trigger * 0.25);
-            //wafflemotor.setPower(gamepad1.right_trigger * -0.25);
-            
-            
-         /* boolean wafflemotorForward = false;
-         boolean wafflemotorBackward = false;
-         boolean wafflemotorOff = false;
-         
-         if (gamepad1.right_trigger < 0.5){
-             wafflemotorForward = true;
-         } else{
-             wafflemotorForward = false;
-         }
-         
-            if (wafflemotorForward = true){
-          wafflemotor.setPower(gamepad1.right_trigger * -1);
-             }
-             
-         if (gamepad1.left_trigger < 0.5){
-             wafflemotorBackward = true;
-         } else{
-             wafflemotorBackward = false;
-         }
-            if (wafflemotorBackward = true){
-             wafflemotor.setPower(gamepad1.left_trigger * 1);
-            
-             
-        } if (wafflemotorForward != true && wafflemotorBackward != true){
-            wafflemotorOff = true;
-            }
-            if (wafflemotorOff = true){
-             wafflemotor.setPower(0);
-             } */
-              
-        //setting wafflemotor (trying to format floats) WILL try to convert floats to booleans later if have time
-          
-            // wafflemotor.setPower(gamepad2.right_stick_y);
-            
+               
             wafflemotor.setPower(gamepad2.right_stick_y * 0.5); 
-           
+            if(gamepad1.a){
+                drive1.setPower(-1);
+                drive2.setPower(-1);
+                drive3.setPower(1);
+                drive4.setPower(1);
+                sleep(100);
+                drive1.setPower(0);
+                drive2.setPower(0);
+                drive3.setPower(0);
+                drive4.setPower(0);
+                
+            }
+            if (gamepad1.y) {
+                
+                shooter1.setPower(-0.85);
+
+            } else if (gamepad1.b){
+                shooter1.setPower(0);
+            }
             if (gamepad2.dpad_up){
                 
-            intakemotor.setPower(1);
+            intakemotor.setPower(-1);
             
            } else if (gamepad2.dpad_left){
                
@@ -136,17 +116,13 @@ public class DragonTest extends LinearOpMode {
         
             if (gamepad2.dpad_right) {
                 
-                gate.setPosition(0.25);
+                liftgate.setPosition(0.5);
                 
             } else if (gamepad2.dpad_down) {
                 
-                gate.setPosition(0.75);
+                liftgate.setPosition(0.75);
                 
-            } else {
-                
-                gate.setPosition(0.5);
-                
-            }
+            } 
             
             if (gamepad2.x) {
                 
@@ -154,12 +130,10 @@ public class DragonTest extends LinearOpMode {
 
             } else if (gamepad2.y) {
                 
-                shooter1.setPower(-1);
-                shooter2.setPower(1);
+                shooter1.setPower(-0.9);
 
             } else if (gamepad2.b){
                 shooter1.setPower(0);
-                shooter2.setPower(0);
 
             } else if (gamepad2.a) {
                 
@@ -213,10 +187,11 @@ public class DragonTest extends LinearOpMode {
                 
             }
             
-            telemetry.addData("alpha:", launchLine.alpha());
-            telemetry.addData("Distance to the Right:", distanceRight.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Distance to the Back:", distanceFront.getDistance(DistanceUnit.INCH));
+            //telemetry.addData("alpha:", launchLine.alpha());
             telemetry.addData("Distance to the Left:", distanceLeft.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Distance to the Front:", distanceFront.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Distance to the Right:", distanceRight.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Distance to the Back:", distanceBack.getDistance(DistanceUnit.INCH));
         
             telemetry.addData("Status", "Running");
             telemetry.update();
@@ -234,22 +209,22 @@ public class DragonTest extends LinearOpMode {
         drive4 = hardwareMap.dcMotor.get("drive4");
         intake = hardwareMap.dcMotor.get("intake");
         shooter1 = hardwareMap.dcMotor.get("shooter1");
-        shooter2 = hardwareMap.dcMotor.get("shooter2");
         wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
-        intakemotor = hardwareMap.get(CRServo.class, "intakemotor");
+        intakemotor = hardwareMap.get(DcMotor.class, "intakemotor");
 
     
         //hardware maps of servos
 
         waffle1 = hardwareMap.servo.get("waffle1");
         waffle2 = hardwareMap.servo.get("waffle2");
-        gate = hardwareMap.get(Servo.class, "gate");
+        liftgate = hardwareMap.get(Servo.class, "liftgate");
         
         // sensors
-        launchLine = hardwareMap.get(ColorSensor.class, "color");
+        //launchLine = hardwareMap.get(ColorSensor.class, "color");
         distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
         distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
         distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft" );
+        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack" );
         
         //directions
         drive1.setDirection(DcMotor.Direction.REVERSE);
@@ -258,12 +233,11 @@ public class DragonTest extends LinearOpMode {
         drive4.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.FORWARD);
         shooter1.setDirection(DcMotor.Direction.REVERSE);
-        shooter2.setDirection(DcMotor.Direction.REVERSE);
         wafflemotor.setDirection(DcMotor.Direction.FORWARD);
-        intakemotor.setDirection(CRServo.Direction.FORWARD);
+        intakemotor.setDirection(DcMotor.Direction.FORWARD);
 
         wafflemotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        
+               
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
