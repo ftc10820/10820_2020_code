@@ -44,7 +44,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 @TeleOp
 
-public class UltimateGoalDriverOpFinal extends LinearOpMode {
+public class Qualifier2DriverOpFinal extends LinearOpMode {
     
     //motors
     private DcMotor drive1;
@@ -60,21 +60,26 @@ public class UltimateGoalDriverOpFinal extends LinearOpMode {
     //servos
     private Servo waffle1;
     private Servo waffle2;
-    private Servo liftgate;
+    private Servo liftgate1;
+    private Servo liftgate2;
+    private Servo liftgate3;
     
     //sensors
-    private ColorSensor launchLine;
+    /*
     private DistanceSensor distanceRight;
     private DistanceSensor distanceFront;
-    private DistanceSensor distanceLeft;
+    private DistanceSensor distanceLeftFront;
+    private DistanceSensor distanceLeftBack;
     private DistanceSensor distanceBack;
-    
+    private ColorSensor launchLineRight;
+    private ColorSensor launchLineLeft;
+    */
     @Override
     public void runOpMode() {
         
         
         initializeRobot();
-        
+        liftgate3.setPosition(0.5);
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
         
@@ -97,13 +102,8 @@ public class UltimateGoalDriverOpFinal extends LinearOpMode {
                 drive4.setPower(0);
                 
             }
-            if (gamepad1.y) {
-                
-                shooter1.setPower(-0.85);
-
-            } else if (gamepad1.b){
-                shooter1.setPower(0);
-            }
+            
+             
             if (gamepad2.dpad_up){
                 
             intakemotor.setPower(-1);
@@ -116,23 +116,48 @@ public class UltimateGoalDriverOpFinal extends LinearOpMode {
         
             if (gamepad2.dpad_right) {
                 
-                liftgate.setPosition(0.5);
+                liftgate1.setPosition(0.5);
+                liftgate2.setPosition(0.5);
                 
             } else if (gamepad2.dpad_down) {
                 
-                liftgate.setPosition(0.75);
+                liftgate1.setPosition(0.75);
+                liftgate2.setPosition(0.75);
                 
             } 
+            
+            if(gamepad2.start) {
+                //liftgate3.setPosition(1);
+                intake.setPower(1);
+                intakemotor.setPower(0.75);
+                liftgate1.setPosition(0.75);
+                liftgate2.setPosition(0.75);
+
+            } else if (gamepad2.back) {
+                intake.setPower(0);
+                intakemotor.setPower(0);
+                liftgate1.setPosition(0.5);
+                liftgate2.setPosition(0.5);
+                //liftgate3.setPosition(0.5);
+                
+
+
+            }
             
             if (gamepad2.x) {
                 
                 intake.setPower(1);
 
-            } else if (gamepad2.y) {
-                
+            } else if (gamepad2.y && liftgate3.getPosition() == 0.5) {
+                liftgate3.setPosition(1);
                 shooter1.setPower(-0.9);
 
-            } else if (gamepad2.b){
+            } else if(gamepad2.y && liftgate3.getPosition() == 1){
+                liftgate3.setPosition(0.5);
+                shooter1.setPower(0);
+                
+            }
+            else if (gamepad2.b){
                 shooter1.setPower(0);
 
             } else if (gamepad2.a) {
@@ -188,14 +213,11 @@ public class UltimateGoalDriverOpFinal extends LinearOpMode {
             }
             
             //telemetry.addData("alpha:", launchLine.alpha());
-            telemetry.addData("Distance to the Left:", distanceLeft.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Distance to the Front:", distanceFront.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Distance to the Right:", distanceRight.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Distance to the Back:", distanceBack.getDistance(DistanceUnit.INCH));
-        
+            
+            
             telemetry.addData("Status", "Running");
             telemetry.update();
-
+            
         }
     }
     
@@ -217,19 +239,26 @@ public class UltimateGoalDriverOpFinal extends LinearOpMode {
 
         waffle1 = hardwareMap.servo.get("waffle1");
         waffle2 = hardwareMap.servo.get("waffle2");
-        liftgate = hardwareMap.get(Servo.class, "liftgate");
+        liftgate1 = hardwareMap.get(Servo.class, "liftgate1");
+        liftgate2 = hardwareMap.get(Servo.class, "liftgate2");
+        liftgate3 = hardwareMap.get(Servo.class, "liftgate3");
+
         
         // sensors
         //launchLine = hardwareMap.get(ColorSensor.class, "color");
-        distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
-        distanceFront = hardwareMap.get(DistanceSensor.class, "distanceFront" );
-        distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft" );
-        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack" );
-        
+        /*
+        launchLineLeft = hardwareMap.get(ColorSensor.class, "colorLeft");
+        launchLineRight = hardwareMap.get(ColorSensor.class, "colorRight");
+        distanceLeftFront = hardwareMap.get(DistanceSensor.class, "distanceLeftFront");
+        distanceLeftBack = hardwareMap.get(DistanceSensor.class, "distanceLeftBack");
+        distanceFrontRight = hardwareMap.get(DistanceSensor.class, "distanceFront" );
+        distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight" );
+        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
+        */
         //directions
         drive1.setDirection(DcMotor.Direction.REVERSE);
-        drive2.setDirection(DcMotor.Direction.REVERSE);
-        drive3.setDirection(DcMotor.Direction.FORWARD);
+        drive2.setDirection(DcMotor.Direction.FORWARD);
+        drive3.setDirection(DcMotor.Direction.REVERSE);
         drive4.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.FORWARD);
         shooter1.setDirection(DcMotor.Direction.REVERSE);
@@ -237,7 +266,7 @@ public class UltimateGoalDriverOpFinal extends LinearOpMode {
         intakemotor.setDirection(DcMotor.Direction.FORWARD);
 
         wafflemotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-               
+        
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
