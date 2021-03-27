@@ -106,11 +106,11 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
              
             if (gamepad2.dpad_up){
                 
-            intakemotor.setPower(-1);
+            //open
             
            } else if (gamepad2.dpad_left){
                
-                intakemotor.setPower(0);
+             //open   
                 
            } 
         
@@ -128,8 +128,11 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
             
             if(gamepad2.start) {
                 //liftgate3.setPosition(1);
+                shooter1.setPower(1);
+                sleep(750);
+                liftgate3.setPosition(1);
                 intake.setPower(1);
-                intakemotor.setPower(0.75);
+                intakemotor.setPower(0.75 * -1);
                 liftgate1.setPosition(0.75);
                 liftgate2.setPosition(0.75);
 
@@ -138,6 +141,8 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
                 intakemotor.setPower(0);
                 liftgate1.setPosition(0.5);
                 liftgate2.setPosition(0.5);
+                liftgate3.setPosition(0.5);
+                shooter1.setPower(0);
                 //liftgate3.setPosition(0.5);
                 
 
@@ -146,24 +151,28 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
             
             if (gamepad2.x) {
                 
+                intakemotor.setPower(-1);
                 intake.setPower(1);
 
             } else if (gamepad2.y && liftgate3.getPosition() == 0.5) {
                 liftgate3.setPosition(1);
-                shooter1.setPower(-0.9);
+                shooter1.setPower(0.9);
 
             } else if(gamepad2.y && liftgate3.getPosition() == 1){
                 liftgate3.setPosition(0.5);
                 shooter1.setPower(0);
                 
-            }
-            else if (gamepad2.b){
-                shooter1.setPower(0);
-
             } else if (gamepad2.a) {
                 
+                intakemotor.setPower(0);
                 intake.setPower(0);
                 
+            } else if (gamepad2.b) {
+                liftgate1.setPosition(0.75);
+                liftgate2.setPosition(0.75);
+                sleep(500);
+                liftgate1.setPosition(0.5);
+                liftgate2.setPosition(0.5);
             }
             
             
@@ -261,7 +270,7 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
         drive3.setDirection(DcMotor.Direction.REVERSE);
         drive4.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.FORWARD);
-        shooter1.setDirection(DcMotor.Direction.REVERSE);
+        shooter1.setDirection(DcMotor.Direction.FORWARD);
         wafflemotor.setDirection(DcMotor.Direction.FORWARD);
         intakemotor.setDirection(DcMotor.Direction.FORWARD);
 
