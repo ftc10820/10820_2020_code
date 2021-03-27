@@ -32,7 +32,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 @Autonomous
 
-public class Round2Final extends LinearOpMode {
+public class Qualifier2AutonomousFinal extends LinearOpMode {
 
 
   // The orientation/position is based on a view of a person looking at
@@ -54,7 +54,7 @@ public class Round2Final extends LinearOpMode {
                                 
   private Servo liftgate1; // servo for gate on the conveyor  
   private Servo liftgate2;
-  
+  private Servo liftgate3;
   
   // motor and servo for the wobble/waffle 
   private DcMotor wafflemotor;
@@ -119,22 +119,44 @@ public class Round2Final extends LinearOpMode {
     if (opModeIsActive()) {
       
       // First shoot the rings 
-      shootRingsFromStart(0.9) ;
+      //shootRingsFromStart(0.9) ;
       
       // move forward and detect the number of rings in the stack  
       detectZone() ; // determine number of rings and the zone for dropoff       
       
+      // While detecting zone, robot moves front a few inches 
+      // After that, straighten it and then use IMU to go straight
+      // irrespective of the zone 
+      // In the case of Zone B and Zone C, take the rings along 
+      
+      // So first, make it parallel to the perimeter wall 
+      // Use the IMU or a manual way 
+      
+      // Adjust manually
+      driveFR.setPower(1.0);
+      driveBR.setPower(1.0);
+      driveFL.setPower(0.0);
+      driveBL.setPower(0.0);
+      sleep(150);
+      stopAllWheelsPower();
+      
+      // move forward to the Launch Line
+      // drop the wabble to save some time  
+      moveForwardToLaunchLineAndLowerWabble(1.0) ;
+      
+      
       // strafe to the right close to the perimeter wall and adjust 
-      strafeToPerimeterWallAndAdjust(1.0) ;
+      //strafeToPerimeterWallAndAdjust(1.0) ;
       
       // move along perimeter wall to launchLine  
       // Note that the "..WithoutAlign" functions uses the IMU  
-      moveForwardToLaunchLineWithoutAlign(1.0) ;
+      //moveForwardToLaunchLineWithoutAlign(1.0) ;
       
       // Alternate function to use 
       //moveForwardAlongPerimeterToLaunchLineAndAlign(1.0) ;
-
       
+      // REST of the actions are different for different zones 
+
       if (final_zone == AZONE) {
         targetZoneA();
       } else {
@@ -172,10 +194,20 @@ public class Round2Final extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
-     testSensors() ;
+     /*
+     liftgate3.setPosition(1);
+     sleep(3000);
+     
+     liftgate3.setPosition(0);
+     sleep(3000);
+     
+     liftgate3.setPosition(0.5);
+     */
+     
+     //testSensors() ;
      //shootRingsFromStart(0.9);
      //testShooter1velocity();
-     
+     //shootRingsFromStart(0.9) ;
      /*
      runInclinedPlane(1.0);
      liftgate2.setPosition(1); 
@@ -331,13 +363,13 @@ public class Round2Final extends LinearOpMode {
       shooter1 = hardwareMap.get(DcMotorEx.class, "shooter1");
       conveyor = hardwareMap.dcMotor.get("intake");
       noodle = hardwareMap.get(DcMotor.class, "intakemotor");
-      liftgate1 = hardwareMap.servo.get("liftgate1");
-      liftgate2 = hardwareMap.servo.get("liftgate2");
-    
+      liftgate1 = hardwareMap.get(Servo.class, "liftgate1");
+      liftgate2 = hardwareMap.get(Servo.class, "liftgate2");
+      liftgate3 = hardwareMap.get(Servo.class, "liftgate3");
       // hardware map for wobble/waffle 
       wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
-      waffle1 = hardwareMap.servo.get("waffle1");
-      waffle2 = hardwareMap.servo.get("waffle2");
+      waffle1 = hardwareMap.get(Servo.class, "waffle1");
+      waffle2 = hardwareMap.get(Servo.class, "waffle2");
       
       // hardware map for sensors 
       launchLineLeft = hardwareMap.get(ColorSensor.class, "colorLeft");
@@ -983,6 +1015,30 @@ public class Round2Final extends LinearOpMode {
     }
     stopAllWheelsPower();
   }
+  
+  private void strafeLeftToLaunchLine(double plevel) {
+  
+    int minWhiteColorAlpha = 500 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
+    int colorRightAfterBreak ;
+    
+    // start moving back 
+    resetAngle();
+  
+    //moveBackwardPower(plevel);    
+    
+    // Do the while loop until the color is reached
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+      strafeRightIMU(-1.0 * plevel) ; // NOTE
+    }
+    stopAllWheelsPower();
+  }
 
   private void moveForwardToLaunchLineWithoutAlign(double plevel) {
     
@@ -1006,6 +1062,57 @@ public class Round2Final extends LinearOpMode {
       moveForwardIMU(plevel) ; // NOTE
     }
     stopAllWheelsPower();
+  }
+  
+  private void moveForwardToLaunchLineAndLowerWabble(double plevel) {
+    
+    int minWhiteColorAlpha = 500 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
+    int colorRightAfterBreak ;
+    
+    // start moving back 
+    resetAngle();
+
+    // start a timer for lowering the wabble only    
+    long tempTime = 0; 
+    long lowerTime = 1000 ; // tune this parameter as required 
+    // VERY IMPORTANT: This should be lower than the time it takes to get 
+    // to the launch line 
+    boolean startedWabbleMotor = false ; 
+    boolean stoppedWabbleMotor = true ; 
+    
+    tempTime = System.currentTimeMillis() ; 
+
+    // Do the while loop until the color is reached
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+      moveForwardIMU(plevel) ; // NOTE 
+      
+      // start lowering wabble goal 500 seconds into the run 
+      if(startedWabbleMotor == false) {
+        if ((System.currentTimeMillis() - tempTime) < 500) { 
+          wafflemotor.setPower(1); // starting to lower the wabble goal
+          startedWabbleMotor = true ;
+          stoppedWabbleMotor = false ;
+          tempTime = System.currentTimeMillis() ; // reset the start time 
+        }
+      }
+      // check if the wabble motor has already been stopped  
+      if (stoppedWabbleMotor == false) {
+        if ((System.currentTimeMillis() - tempTime) > lowerTime) {
+          wafflemotor.setPower(0) ;
+          stoppedWabbleMotor = true ;
+        }
+      }
+    }
+    stopAllWheelsPower();
+    // Just to be sure, stop the wabble motor as well 
+    wafflemotor.setPower(0) ;
   }
   
   // do we have to set the mode when switching off?  
@@ -1063,24 +1170,130 @@ public class Round2Final extends LinearOpMode {
 
   private void targetZoneA() {
     
-    // before dropping the wabble goal rotate a bit 
-    rotate(90,1.0) ;
-    // drop the wobble goal.
-    dropWaffleGoal();
+    // before dropping the wabble goal rotate 90 
+    // the lowered intake mechanism may hit the perimeter wall 
+    // so we  may need to go a bit forward and rotate a bit more than 90
+    
+    // moving forward a bit 
+    moveForwardPower(1.0) ;
+    sleep(750) ;
+    stopAllWheelsPower();
+    
+    // rotating 
+    rotate(-90,1.0) ;
+    
+    // move Backward till the robot is a few inches from the perimeter wall 
+    // Use the back distance sensor 
+    resetAngle();
+    while (distanceBack.getDistance(DistanceUnit.INCH) > 10) {
+      // Note that what is being detected here is the perimeter wall
+      // and not the wabble goal itself  
+      moveForwardIMU(-1.0 ) ; // NOTE
+    }
+    stopAllWheelsPower();
+    
+    // move the hold on the wobble goal.
+    // Open the grips 
+    waffle1.setPosition(-1);
+    waffle2.setPosition(1);
     
     // strafe left to clear off the waffle 
     strafeLeftPower(1.0) ;
-    sleep(500) ;
+    sleep(250) ;
     stopAllWheelsPower();
 
-    rotate(-90,1.0) ;    
+    // If target is to just get one wabble goal then get to the launch line and stop 
+    
+    // Comment out the rest of the code below 
+    // But if we are ambitious, get ready to pick up the second wabble 
+    
+    // First move forward until robot is some distance from the perimeter   
+    moveForwardPower (1.0) ;
+    while (distanceBack.getDistance(DistanceUnit.INCH) < 25) ; // change parameter 
     stopAllWheelsPower();
     
-    // it should be straight by now and already on the launch line
-    // nothing else we need to do or can do 
+    // Now strafe right to get to the second wabble 
+    resetAngle();
+    
+    while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
+      // Note that what is being detected here is the perimeter wall
+      // and not the wabble goal itself  
+      strafeRightPower(1.0) ; // NOTE
+    }
+    stopAllWheelsPower();
+
+    
+    /*
+    // now  rotate a bit so the wabble grabbers are in line with the wablle goal    
+    rotate (-45,1.0) ; // angle needs to be changed ; make sure it is not over-rotated 
+    
+    // now continue to strafe right a bit more
+    // Ideally the distanceRight sensor can be used to see if we are sufficently 
+    // close to the wabble goal, but for now we are doing something manual  
+    strafeRightPower(1.0) ;
+    sleep (500) ;
+    */
+    
+    // hold the wabble goal 
+    waffle1.setPosition(1);
+    waffle2.setPosition(-1);
+    sleep (2000) ;  // lets the grippers close properly 
+    
+    // lift the wabble goal slightly so it doesnt drag on the floor 
+    wafflemotor.setPower(-1);
+    sleep(250); // this time can be saved by lowering the wabble goal before 
+    wafflemotor.setPower(0);
+
+
+    // The below is for straffing to the launch line    
+    // Now strafe left all the way left to the launch line 
+    int minWhiteColorAlpha = 500 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
+    strafeLeftPower(1.0) ;
+    // Do the while loop until the color is reached
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+    }
+    stopAllWheelsPower();
+
+    //strafeLeftToLaunchLine(1.0) ;
+    
+    // we may need to move back some more a bit so adjust accordingly 
+    strafeLeftPower(1.0) ;
+    sleep(500) ;
+    stopAllWheelsPower();
+    
+    rotate (-90,1.0) ;
+    
     moveForwardPower(1.0) ;
     sleep(500) ;
     stopAllWheelsPower();
+    
+    /*
+    // move back a bit or until the back sensor is a certain distance from the wall  
+    moveBackwardPower(1.0) ;
+    while (distanceBack.getDistance(DistanceUnit.INCH) > 15) ;
+    stopAllWheelsPower();
+    */
+    // drop the wabble goal 
+    wafflemotor.setPower(1);
+    sleep(250); // this time can be saved by lowering the wabble goal before 
+    wafflemotor.setPower(0);
+    
+    // Open the grips 
+    waffle1.setPosition(-1);
+    waffle2.setPosition(1);
+    
+    // hopefully we are on the launch line 
+    // if not get there.
+    
+    // Phew!! 
+    
   }
 
   private void targetZoneB() {
@@ -1565,7 +1778,7 @@ public class Round2Final extends LinearOpMode {
       strafeRightIMU(1.0) ;
     }
     stopAllWheelsPower();
-    
+          
     sleep(5000) ;
     
   }
@@ -1645,7 +1858,7 @@ public class Round2Final extends LinearOpMode {
       }
     }
     // Either the timer ran out or the third ring got shot 
-    sleep(500) ;
+    sleep(400) ;
     
     // stop the rest of the system 
     liftgate2.setPosition(0.5); 
@@ -1680,7 +1893,7 @@ public class Round2Final extends LinearOpMode {
     driveBR.setPower(1.0);
     driveFL.setPower(0.0);
     driveBL.setPower(0.0);
-    sleep(300);
+    sleep(450);
     stopAllWheelsPower();
     
     /*
