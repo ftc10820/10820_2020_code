@@ -101,12 +101,11 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
   public void runOpMode() {
 
     initializeRobot(); // intialize the complete robot including camera, imu, etc.
-    
-    setupWabbleGoal() ; // set up the wabble goal position
+    //setupWabbleGoal() ; // set up the wabble goal position
     
     runTestCode() ;  // run any test code if required 
     sleep(1000) ;
-    
+    liftgate3.setPosition(1);
     telemetry.addData(">", "Press Play to start");
     telemetry.update();
 
@@ -119,7 +118,7 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     if (opModeIsActive()) {
       
       // First shoot the rings 
-      //shootRingsFromStart(0.9) ;
+      shootRingsFromStart(0.9) ;
       
       // move forward and detect the number of rings in the stack  
       detectZone() ; // determine number of rings and the zone for dropoff       
@@ -142,7 +141,7 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
       
       // move forward to the Launch Line
       // drop the wabble to save some time  
-      moveForwardToLaunchLineAndLowerWabble(1.0) ;
+      //moveForwardToLaunchLineAndLowerWabble(1.0) ;
       
       
       // strafe to the right close to the perimeter wall and adjust 
@@ -194,6 +193,20 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     /* execute any test code if required 
      this is run before the start is pressed and helpful for debugging
      */
+     runShooter(0.9) ;
+     sleep(1500);
+     liftgate2.setPosition(1.0) ;
+     sleep(1500);
+     runInclinedPlane(1.0); 
+     sleep(3500);
+     runShooter(1.0) ;
+     runNoodleIntake(0.4) ;
+     sleep(40000) ;
+     liftgate2.setPosition(0.5) ;
+     stopNoodleIntake();
+     stopInclinedPlane();
+     stopShooter();
+     
      /*
      liftgate3.setPosition(1);
      sleep(3000);
@@ -364,7 +377,7 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
       conveyor = hardwareMap.dcMotor.get("intake");
       noodle = hardwareMap.get(DcMotor.class, "intakemotor");
       liftgate1 = hardwareMap.get(Servo.class, "liftgate1");
-      liftgate2 = hardwareMap.get(Servo.class, "liftgate2");
+      liftgate2 = hardwareMap.get(Servo.class, "complianceWheels");
       liftgate3 = hardwareMap.get(Servo.class, "liftgate3");
       // hardware map for wobble/waffle 
       wafflemotor = hardwareMap.dcMotor.get("wafflemotor");
@@ -1064,6 +1077,26 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     stopAllWheelsPower();
   }
   
+  private void moveForwardToLaunchLine(double plevel) {
+    
+    int minWhiteColorAlpha = 500 ; // Another parameter to tune 
+    int colorRight = 0;
+    int colorLeft = 0;
+    
+    // start moving back 
+    resetAngle();
+
+    // Do the while loop until the color is reached
+    colorRight = launchLineRight.alpha() ;
+    colorLeft = launchLineLeft.alpha() ;
+    while ((colorRight < minWhiteColorAlpha) && (colorLeft < minWhiteColorAlpha)) {
+      colorRight = launchLineRight.alpha() ;
+      colorLeft = launchLineLeft.alpha() ;
+      moveForwardIMU(plevel) ; // NOTE 
+    }
+    stopAllWheelsPower();
+  }
+  
   private void moveForwardToLaunchLineAndLowerWabble(double plevel) {
     
     int minWhiteColorAlpha = 500 ; // Another parameter to tune 
@@ -1077,7 +1110,7 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
 
     // start a timer for lowering the wabble only    
     long tempTime = 0; 
-    long lowerTime = 1000 ; // tune this parameter as required 
+    long lowerTime = 800 ; // tune this parameter as required 
     // VERY IMPORTANT: This should be lower than the time it takes to get 
     // to the launch line 
     boolean startedWabbleMotor = false ; 
@@ -1113,6 +1146,7 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     stopAllWheelsPower();
     // Just to be sure, stop the wabble motor as well 
     wafflemotor.setPower(0) ;
+    
   }
   
   // do we have to set the mode when switching off?  
@@ -1173,15 +1207,24 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     // before dropping the wabble goal rotate 90 
     // the lowered intake mechanism may hit the perimeter wall 
     // so we  may need to go a bit forward and rotate a bit more than 90
+  
+    moveForwardToLaunchLineAndLowerWabble(1.0) ;
     
     // moving forward a bit 
     moveForwardPower(1.0) ;
-    sleep(750) ;
+    sleep(500) ;
     stopAllWheelsPower();
     
     // rotating 
-    rotate(-90,1.0) ;
+    rotate(90,1.0) ;
     
+    // move forward 
+    moveForwardPower(1.0) ;
+    sleep(1000) ;
+    stopAllWheelsPower();
+    
+
+    /*    
     // move Backward till the robot is a few inches from the perimeter wall 
     // Use the back distance sensor 
     resetAngle();
@@ -1191,23 +1234,25 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
       moveForwardIMU(-1.0 ) ; // NOTE
     }
     stopAllWheelsPower();
-    
+    */
     // move the hold on the wobble goal.
     // Open the grips 
     waffle1.setPosition(-1);
     waffle2.setPosition(1);
     
+    /*
     // strafe left to clear off the waffle 
     strafeLeftPower(1.0) ;
     sleep(250) ;
     stopAllWheelsPower();
-
+    */
     // If target is to just get one wabble goal then get to the launch line and stop 
     
     // Comment out the rest of the code below 
     // But if we are ambitious, get ready to pick up the second wabble 
     
     // First move forward until robot is some distance from the perimeter   
+    /*
     moveForwardPower (1.0) ;
     while (distanceBack.getDistance(DistanceUnit.INCH) < 25) ; // change parameter 
     stopAllWheelsPower();
@@ -1215,12 +1260,15 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     // Now strafe right to get to the second wabble 
     resetAngle();
     
-    while (distanceRight.getDistance(DistanceUnit.INCH) > 15) {
+    while (distanceRight.getDistance(DistanceUnit.INCH) > 12) {
       // Note that what is being detected here is the perimeter wall
       // and not the wabble goal itself  
       strafeRightPower(1.0) ; // NOTE
     }
+    strafeRightPower(1.0) ;
+    sleep(500);
     stopAllWheelsPower();
+    */
 
     
     /*
@@ -1234,6 +1282,7 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     sleep (500) ;
     */
     
+    /*
     // hold the wabble goal 
     waffle1.setPosition(1);
     waffle2.setPosition(-1);
@@ -1273,13 +1322,15 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     moveForwardPower(1.0) ;
     sleep(500) ;
     stopAllWheelsPower();
-    
+    */
     /*
     // move back a bit or until the back sensor is a certain distance from the wall  
     moveBackwardPower(1.0) ;
     while (distanceBack.getDistance(DistanceUnit.INCH) > 15) ;
     stopAllWheelsPower();
     */
+    
+    /*
     // drop the wabble goal 
     wafflemotor.setPower(1);
     sleep(250); // this time can be saved by lowering the wabble goal before 
@@ -1293,70 +1344,192 @@ public class Qualifier2AutonomousFinal extends LinearOpMode {
     // if not get there.
     
     // Phew!! 
-    
+    */
   }
 
   private void targetZoneB() {
 
-    // moveBackward for 2 seconds 
+    moveForwardToLaunchLineAndLowerWabble(1.0) ;
+
+    // On reaching the launch line 
+    // Moving backward to clear from the ring
+    moveBackwardPower(1.0);
+    sleep(250);
+    stopAllWheelsPower();
+
+    // First, rotate 90 degrees 
+    rotate(50, 1.0) ;
+    
+    // may need to move it forward some more 
     moveForwardPower(1.0) ;
-    wafflemotor.setPower(1);
-    sleep(1250) ;
-    wafflemotor.setPower(0);
+    sleep(750) ;
+    stopAllWheelsPower();
+
+    // strafe right to get to Zone B     
+    strafeRightPower(1.0) ;
+    sleep(1500) ;
     stopAllWheelsPower();
     
-    // strafe right to get to Zone B  
-    strafeRightPower(1.0) ;
+    moveBackwardPower(1.0) ;
     sleep(1000) ;
     stopAllWheelsPower();
     
-    // drop the wabble goal 
+    // Open the grips 
     waffle1.setPosition(-1);
-    waffle2.setPosition(1);    
+    waffle2.setPosition(1);
     
-    // strafe left to clear off the waffle 
+    // strafe left and get back to the Launch line  
+    strafeLeftPower(1.0) ;
+    sleep(150) ;
+    stopAllWheelsPower();
+
+    moveForwardPower(1.0) ;
+    sleep(1000) ;
+    stopAllWheelsPower();
+    // run noodle earlier so it touches the floor 
+    runNoodleIntake(1.0) ;
+    
     strafeLeftPower(1.0) ;
     sleep(500) ;
     stopAllWheelsPower();
+    // run the inclined plane and the noodles 
+    // first ensure the liftgate3 
+    liftgate3.setPosition(0.5) ; // ensure that the rings are not shot 
+    runInclinedPlane(1.0) ;
     
-    // move back to the LaunchLine and align 
-    // dont use distance sensor this time 
-    moveBackwardToLaunchLineAndAlign(1.0) ;
+    // Now move it back; hopefully it will pick it up the rings on the way 
+    moveBackwardPower(1.0) ;
+    sleep(1000) ;
+    stopAllWheelsPower();
     
+    // temporarily stop the inclined plane 
+    stopInclinedPlane();
+    
+    // rotate and get ready for high Goal 
+    rotate(-60,1.0) ;
+    
+    // First get the shooter reved up 
+    // Run it at the right power level so as to target the high goal
+    runShooter(1.0);
+    moveBackwardPower(1.0);
+    sleep(1000) ;
+    stopAllWheelsPower();
+    // you can use the velocity to determine if it has revved up sufficiently 
+    // but for now just sleep for some time  
+    sleep(1000);  //warming up shooter
+    
+    // Start running the inclined plane 
+    liftgate3.setPosition(1.0) ; // ensure that the rings are not shot 
+    runInclinedPlane(1.0);
+    // For the second one, run the noodle so that it can push the third ring a bit 
+    // and nudge the second ring to get going on the inclined plane
+    runNoodleIntake(0.5); // note the power level   
+    
+    // sometimes the first ring is not getting shot so move the lift gate 
+    liftgate1.setPosition(1.0);
+    liftgate2.setPosition(1.0);
+
+    double cur_time = System.currentTimeMillis() ;
+    
+    while ((System.currentTimeMillis() - autoStartTime) < 29000) ;
+      
+    moveForwardPower(1.0) ;  
+    sleep(500) ;
+    stopAllWheelsPower();
   }
 
   private void targetZoneC() {
     
-    // start moving back 
-    resetAngle();
+    moveForwardToLaunchLine(1.0) ;
     
-    // moveBackward until distanceBack is less than 10 inches  
-    //moveBackwardPower(0.75) ;
-    while (distanceFront.getDistance(DistanceUnit.INCH) > 15) {
-      // it might be off so adjust if required 
-      // may want to check for blue line 
-      moveForwardIMU(1.0 ) ; // NOTE
-    }
+    // On reaching the launch line 
+    // Moving backward to clear from the ring
+    moveBackwardPower(1.0);
+    sleep(500);
     stopAllWheelsPower();
 
-    // before dropping the wabble goal rotate a bit 
-    rotate(90,1.0) ;
+    // First, rotate 90 degrees 
+    rotate(60, 1.0) ;
     
-    // drop the wabble goal 
-    dropWaffleGoal();
-    
-    // strafe left to clear off the waffle 
-    strafeLeftPower(1.0) ;
-    sleep(500) ;
+    // may need to move it forward some more 
+    moveForwardPower(1.0) ;
+    sleep(750) ;
+    stopAllWheelsPower();
+
+    // strafe right to get to Zone C     
+    strafeRightPower(1.0) ;
+    wafflemotor.setPower(1.0) ;
+    sleep(1000) ;
+    wafflemotor.setPower(0.0) ;
+    sleep(2500) ;
     stopAllWheelsPower();
     
-    // turn it back straight 
-    // Better to turn now rather than later 
+    // Open the grips 
+    waffle1.setPosition(-1);
+    waffle2.setPosition(1);
+    
+    // strafe left and get back to the Launch line
+    // could use the color sensor to detect the launch line  
+    strafeLeftPower(1.0) ;
+    
+    // get to the launch line and use the colorLeft 
+    int minWhiteColorAlpha = 500 ; // Another parameter to tune 
+    int colorLeft = 0;
+    
+    // Do the while loop until the color is reached
+    colorLeft = launchLineLeft.alpha() ;
+    while (colorLeft < minWhiteColorAlpha) {
+      colorLeft = launchLineLeft.alpha() ;
+    }
+    stopAllWheelsPower();
+    
+    // run noodle earlier so it touches the floor 
+    runNoodleIntake(1.0) ;
+    liftgate3.setPosition(0.5) ; // ensure that the rings are not shot 
+    runInclinedPlane(1.0) ;
+    
+    // Now move it back; hopefully it will pick it up the rings on the way 
+    moveBackwardPower(1.0) ;
+    sleep(2000) ;
+    stopAllWheelsPower();
+    moveForwardPower(1.0) ;
+    sleep(1000) ;
+    stopAllWheelsPower();
+    
+    // temporarily stop the inclined plane 
+    stopInclinedPlane();
+    
+    // rotate and get ready for high Goal 
     rotate(-90,1.0) ;
     
-    // move back to the LaunchLine and align 
-    // dont use distance sensor this time 
-    moveBackwardToLaunchLineAndAlign(1.0) ;
+    // First get the shooter reved up 
+    // Run it at the right power level so as to target the high goal
+    runShooter(1.0);
+    moveBackwardPower(1.0) ;
+    sleep(1000) ;
+    stopAllWheelsPower();
+    sleep(1000) ; // revving the shooter for the remaining 1 second
+    // you can use the velocity to determine if it has revved up sufficiently 
+    // but for now just sleep for some time  
+    
+    // Start running the inclined plane 
+    liftgate3.setPosition(1.0) ; // ensure that the rings are not shot 
+    runInclinedPlane(1.0);
+    // For the second one, run the noodle so that it can push the third ring a bit 
+    // and nudge the second ring to get going on the inclined plane
+    runNoodleIntake(0.5); // note the power level   
+    
+    // sometimes the first ring is not getting shot so move the lift gate 
+    liftgate1.setPosition(1.0);
+    liftgate2.setPosition(1.0);
+
+    double cur_time = System.currentTimeMillis() ;
+    
+    while ((System.currentTimeMillis() - autoStartTime) < 29000) ;
+      
+    moveForwardPower(1.0) ;  
+    sleep(500) ;
+    stopAllWheelsPower();
   }
   
   private void strafeRightToShootingPositionOnLaunchLine() {
