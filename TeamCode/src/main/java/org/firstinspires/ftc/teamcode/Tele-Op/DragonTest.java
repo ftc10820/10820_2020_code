@@ -1,15 +1,12 @@
 /*
 Copyright 2020 FIRST Tech Challenge Team FTC
-
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
 NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
@@ -61,7 +58,7 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
     private Servo waffle1;
     private Servo waffle2;
     private Servo liftgate1;
-    private Servo liftgate2;
+    private Servo complianceWheels;
     private Servo liftgate3;
     
     //sensors
@@ -105,95 +102,67 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
             
              
             if (gamepad2.dpad_up){
-                
-            //open
-            
+                //shift compliance wheels
+                complianceWheels.setPosition(1);
+                sleep(250);
+                complianceWheels.setPosition(0.5);
            } else if (gamepad2.dpad_left){
-               
              //open   
-                
            } 
-        
             if (gamepad2.dpad_right) {
-                
-                liftgate1.setPosition(0.5);
-                liftgate2.setPosition(0.5);
-                
+             //open
             } else if (gamepad2.dpad_down) {
-                
-                liftgate1.setPosition(0.75);
-                liftgate2.setPosition(0.75);
-                
+             //open
             } 
             
-            if(gamepad2.start) {
-                //liftgate3.setPosition(1);
-                shooter1.setPower(1);
-                sleep(750);
-                liftgate3.setPosition(1);
-                intake.setPower(1);
-                intakemotor.setPower(0.75 * -1);
-                liftgate1.setPosition(0.75);
-                liftgate2.setPosition(0.75);
-
-            } else if (gamepad2.back) {
-                intake.setPower(0);
-                intakemotor.setPower(0);
-                liftgate1.setPosition(0.5);
-                liftgate2.setPosition(0.5);
-                liftgate3.setPosition(0.5);
-                shooter1.setPower(0);
-                //liftgate3.setPosition(0.5);
-                
-
-
-            }
             
             if (gamepad2.x) {
-                
+                //start the intake
                 intakemotor.setPower(-1);
                 intake.setPower(1);
 
-            } else if (gamepad2.y && liftgate3.getPosition() == 0.5) {
-                liftgate3.setPosition(1);
-                shooter1.setPower(0.9);
-
-            } else if(gamepad2.y && liftgate3.getPosition() == 1){
-                liftgate3.setPosition(0.5);
-                shooter1.setPower(0);
+            }  else if(gamepad2.y){
+                //start shooting
+                shooter1.setPower(1);
+                sleep(1000);
+                complianceWheels.setPosition(1);
+                intakemotor.setPower(0.75 * -1);
+                intake.setPower(0.75);
                 
             } else if (gamepad2.a) {
-                
+                //stop the intake
                 intakemotor.setPower(0);
                 intake.setPower(0);
                 
             } else if (gamepad2.b) {
-                liftgate1.setPosition(0.75);
-                liftgate2.setPosition(0.75);
-                sleep(500);
-                liftgate1.setPosition(0.5);
-                liftgate2.setPosition(0.5);
+                //stop shooting
+                intake.setPower(0);
+                intakemotor.setPower(0);
+                complianceWheels.setPosition(0.5);
+                shooter1.setPower(0);
             }
             
-            
+
+
             if (gamepad2.left_bumper) {
-                
+                //close the waffle grabber
                 waffle1.setPosition(1);
                 waffle2.setPosition(-1);
                 telemetry.addData("wafflestatus", "closed");
                 telemetry.update();
                 
             } else if (gamepad2.right_bumper) {
-                
+                //open the waffle grabber
                 waffle1.setPosition(-1);
                 waffle2.setPosition(1);
 
             } else {
-                
+                //default waffle grabber 
                 waffle1.setPosition(0.5);
                 waffle2.setPosition(0.5);
 
             }
+            
             
             
             if (gamepad1.right_bumper) {
@@ -249,7 +218,7 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
         waffle1 = hardwareMap.servo.get("waffle1");
         waffle2 = hardwareMap.servo.get("waffle2");
         liftgate1 = hardwareMap.get(Servo.class, "liftgate1");
-        liftgate2 = hardwareMap.get(Servo.class, "liftgate2");
+        complianceWheels = hardwareMap.get(Servo.class, "complianceWheels");
         liftgate3 = hardwareMap.get(Servo.class, "liftgate3");
 
         
@@ -281,4 +250,3 @@ public class Qualifier2DriverOpFinal extends LinearOpMode {
 
     }
 }
-
